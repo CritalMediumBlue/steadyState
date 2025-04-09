@@ -1,5 +1,4 @@
-
-const GRID = { WIDTH: 200, HEIGHT: 200 };  //micrometers
+const GRID = { WIDTH: 100, HEIGHT: 60 };  //micrometers
 
 export const sceneState = {
     scene: null,
@@ -24,10 +23,10 @@ export const dataState = {
 
 export const constants = {
     GRID,
-    DIFFUSION_RATE: 100, // micrometers squared per seconds
-    deltaX: 1, // micrometers
-    deltaT: 0.82 * (Math.pow(1, 2)) / (4 * 100), // seconds
-    numberOfStepsPerSecond: Math.round(1 / (0.82 * (Math.pow(1, 2)) / (4 * 100)))
+    DIFFUSION_RATE: null, // micrometers squared per seconds
+    deltaX: null, // micrometers
+    deltaT: null, // seconds
+    numberOfStepsPerSecond: null, // steps per second
 };
 
 export const initArrays = () => {
@@ -40,18 +39,27 @@ export const initArrays = () => {
     // Initialize sources and sinks
     dataState.sources = new Float32Array(gridSize);
     dataState.sinks = new Float32Array(gridSize);
+
+    const numberOfSinksAndSources = 3; 
     
-    // Create initial concentration distribution (e.g., a central peak)
-    for (let y = 0; y < constants.GRID.HEIGHT; y++) {
-        for (let x = 0; x < constants.GRID.WIDTH; x++) {
-            const idx = y * constants.GRID.WIDTH + x;
-            
-            // Concentration peak with exponential decay
-            dataState.currentConcentrationData[idx] = 1;
-            
-            // Optional: Add some random sources/sinks
-            dataState.sources[idx] = Math.random() < 0.001 ? 8: 0;
-            dataState.sinks[idx] = Math.random() < 0.001 ? 1: 0;
+    const sourcePositions = new Set();
+    const sinkPositions = new Set();
+
+    for(let i = 0; i < numberOfSinksAndSources; i++) {
+        let pos;
+        pos = Math.floor(Math.random() * gridSize);
+        while(sourcePositions.has(pos)) {
+            pos = Math.floor(Math.random() * gridSize);
         }
+        sourcePositions.add(pos);
+        dataState.sources[pos] = 10000/constants.numberOfStepsPerSecond; 
+        pos = Math.floor(Math.random() * gridSize);
+        while(sinkPositions.has(pos)) {
+            pos = Math.floor(Math.random() * gridSize);
+        }
+        sinkPositions.add(pos);
+        dataState.sinks[pos] = 1000/constants.numberOfStepsPerSecond; 
     }
+
+ 
 };

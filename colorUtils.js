@@ -5,7 +5,7 @@
  */
 export const calculateColor = (concentration) => {
     // Normalize concentration value
-    const colorValue = Math.min(1, concentration / 10);
+    const colorValue =  concentration / 10;
     
     // Calculate color components with phase shifts for RGB
     const phase = colorValue * 2 * Math.PI;
