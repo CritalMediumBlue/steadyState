@@ -7,7 +7,7 @@ import { diffusion } from './diffusion.js';
 let stop = false;
 const DIFFUSION_RATE = 100; // micrometers squared per seconds
 const deltaX = 1; // micrometers
-const deltaT = 0.82 * (Math.pow(deltaX, 2)) / (4 * DIFFUSION_RATE); // seconds
+const deltaT = 0.80 * (Math.pow(deltaX, 2)) / (4 * DIFFUSION_RATE); // seconds
 const numberOfStepsPerSecond = Math.round(1 / deltaT); // steps per second
 
 // Create Web Worker for diffusion calculations
@@ -78,15 +78,9 @@ const updateScene = () => {
 
    
 
- /*    [dataState.currentConcentrationData, dataState.nextConcentrationData] = diffusion(
-        DIFFUSION_RATE,
-        deltaX,
-        deltaT
-    )  */
-    // Request diffusion calculation from worker
+    //[dataState.currentConcentrationData, dataState.nextConcentrationData] = diffusion()  
     requestDiffusionCalculation();
     
-    animationState.currentTimeStep++;
 };
 
 /**

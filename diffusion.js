@@ -1,16 +1,14 @@
 
-import { dataState, constants } from './state.js';
+import { dataState, constants,animationState } from './state.js';
 /**
  * Perform diffusion simulation step
  * @returns {[Float32Array, Float32Array]} Updated concentration data
  */
 export const diffusion = (
-    
-    DIFFUSION_RATE,
-    deltaX,
-    deltaT
+   
 ) => {
     const { WIDTH, HEIGHT } = constants.GRID;
+    const {DIFFUSION_RATE, deltaX, deltaT} = constants;
      let { 
             currentConcentrationData, 
             nextConcentrationData, 
@@ -60,6 +58,6 @@ export const diffusion = (
         // switch current and next concentration data using destructuring
         [currentConcentrationData, nextConcentrationData] = [nextConcentrationData, currentConcentrationData];
     }
-
+    animationState.currentTimeStep++;
     return [nextConcentrationData, currentConcentrationData];
 };

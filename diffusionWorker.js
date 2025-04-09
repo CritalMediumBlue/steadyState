@@ -1,4 +1,3 @@
-// Diffusion Worker for parallel computation of concentration data
 
 // Diffusion calculation function
 function diffusion(
