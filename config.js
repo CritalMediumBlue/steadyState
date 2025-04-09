@@ -10,8 +10,8 @@ export const CONFIG = {
         
         CAMERA_POSITION: {
             x: 0,
-            y: 0,
-            z: 150
+            y: -70,
+            z: 30
         },
         
         CAMERA_LOOKAT: {

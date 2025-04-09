@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { CONFIG } from './config.js';
+import { constants } from './state.js';
 
 /**
  * Sets up the scene, camera, renderer, and controls.
@@ -18,7 +19,8 @@ export function setupScene() {
 
 function createMesh(scene) {
 
-    const WIDTH = 100, HEIGHT = 60;
+    const WIDTH = constants.GRID.WIDTH;
+    const HEIGHT = constants.GRID.HEIGHT;
 
     const planeGeometry = new THREE.PlaneGeometry(WIDTH-1, HEIGHT-1, WIDTH -1, HEIGHT-1 ); // width, height, widthSegments, heightSegments
     planeGeometry.rotateZ(-Math.PI);
