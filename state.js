@@ -1,4 +1,4 @@
-const GRID = { WIDTH: 100, HEIGHT: 60 };  //micrometers
+const GRID = { WIDTH: null, HEIGHT: null };  //micrometers
 
 export const sceneState = {
     scene: null,
@@ -40,14 +40,14 @@ export const initArrays = () => {
     dataState.sources = new Float32Array(gridSize);
     dataState.sinks = new Float32Array(gridSize);
 
-    const numberOfSinksAndSources = 3; 
+    const numberOfSinksAndSources = 5; 
     
     const sourcePositions = new Set();
     const sinkPositions = new Set();
 
     for(let i = 0; i < numberOfSinksAndSources; i++) {
         let pos;
-        pos = Math.floor(Math.random() * gridSize);
+        pos = Math.floor(GRID.WIDTH+Math.random() * (gridSize-GRID.WIDTH));
         while(sourcePositions.has(pos)) {
             pos = Math.floor(Math.random() * gridSize);
         }

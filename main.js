@@ -18,7 +18,7 @@ constants.deltaX = deltaX;
 constants.deltaT = deltaT;
 constants.numberOfStepsPerSecond = numberOfStepsPerSecond;
 constants.GRID.WIDTH = 100; // micrometers
-constants.GRID.HEIGHT = 60; // micrometers
+constants.GRID.HEIGHT = 100; // micrometers
 
 
 
@@ -90,7 +90,7 @@ const updateScene = () => {
 
    
 
-    if(animationState.currentTimeStep < 500) {
+    if(animationState.currentTimeStep < 300) {
         //requestDiffusionCalculation();
         [dataState.currentConcentrationData, dataState.nextConcentrationData] = diffusion()
 
