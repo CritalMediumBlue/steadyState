@@ -22,26 +22,14 @@ export function diffusionCore(
     deltaT,
     method 
 ) {
+    
     let chosenFunction;
         switch(method){
-        case "FTCS":
-            chosenFunction = FTCS;
-            break;
-        case "ADI":
-            chosenFunction = ADI;
-            break;  
+        case "FTCS":chosenFunction = FTCS;break;
+        case "ADI":chosenFunction = ADI;break;  
     }
 
-    return chosenFunction(
-        currentData, 
-        nextData, 
-        sources, 
-        sinks, 
-        constants,
-        DIFFUSION_RATE,
-        deltaX,
-        deltaT
-    );
+    return chosenFunction(currentData, nextData, sources, sinks, constants,DIFFUSION_RATE,deltaX,deltaT);
 }
 
 /**
@@ -58,29 +46,20 @@ export function diffusionCore(
  * @returns {Object} Updated concentration data
  */
 
-const FTCS = ( //Forward-Time Central-Space
-    currentData, 
-    nextData, 
-    sources, 
-    sinks, 
-    constants,
-    DIFFUSION_RATE,
-    deltaX,
-    deltaT
-) => {
+const FTCS = ( currentData, nextData, sources, sinks, constants,DIFFUSION_RATE,deltaX,deltaT) => {
     const { WIDTH, HEIGHT } = constants.GRID;
     const numberOfSteps = Math.round(1 / deltaT); // steps per second
     // Create copies of input arrays to avoid modifying originals if needed
     let current = new Float32Array(currentData);
     let next = new Float32Array(nextData);
+    const DiffusionParam = DIFFUSION_RATE * deltaT / (deltaX ** 2);
+
 
     for (let step = 0; step < numberOfSteps; step++) {
         // Diffusion calculation with source/sink terms
         for (let y = 1; y < HEIGHT - 1; y++) {
             for (let x = 1; x < WIDTH - 1; x++) {
                 const idx = y * WIDTH + x;
-
-                const DiffusionParam = DIFFUSION_RATE * deltaT / (deltaX ** 2);
 
                 // Diffusion term (5-point stencil)
                 const diffusionTerm = DiffusionParam * (
@@ -91,12 +70,8 @@ const FTCS = ( //Forward-Time Central-Space
                     4 * current[idx]
                 );
                
-                // Source and sink terms
-                const sourceTerm = sources[idx] ;
-                const sinkTerm = sinks[idx] ;//* current[idx];
-
                 // Update concentration
-                next[idx] = current[idx] + diffusionTerm + sourceTerm - sinkTerm;
+                next[idx] = current[idx] + diffusionTerm + sources[idx] - sinks[idx];
             }
         }
 
@@ -123,41 +98,8 @@ const FTCS = ( //Forward-Time Central-Space
     };
 };
 
-const thomasAlgorithm = (a, b, c, d, x, n) => {
-    // Create temporary arrays to avoid modifying the input
-    const c_prime = new Float32Array(n);
-    const d_prime = new Float32Array(n);
-    
-    // Forward sweep
-    // Ensure we don't divide by zero
-    const b0 = Math.abs(b[0]) < 1e-10 ? 1e-10 : b[0];
-    c_prime[0] = c[0] / b0;
-    d_prime[0] = d[0] / b0;
-    
-    for (let i = 1; i < n; i++) {
-        // Ensure numerical stability by avoiding division by very small numbers
-        const denominator = b[i] - a[i] * c_prime[i-1];
-        const m = 1.0 / (Math.abs(denominator) < 1e-10 ? 1e-10 : denominator);
-        c_prime[i] = c[i] * m;
-        d_prime[i] = (d[i] - a[i] * d_prime[i-1]) * m;
-    }
-    
-    // Back substitution
-    x[n-1] = d_prime[n-1];
-    
-    for (let i = n - 2; i >= 0; i--) {
-        x[i] = d_prime[i] - c_prime[i] * x[i+1];
-    }
-    
-   
-};
 
-
-
-const ADI = (
-    currentConcentrationData, nextConcentrationData,
-    sources, sinks, constants,
-    DIFFUSION_RATE, deltaX, deltaT) => {
+const ADI = (currentConcentrationData, nextConcentrationData,sources, sinks, constants, DIFFUSION_RATE, deltaX, deltaT) => {
 
     const { WIDTH, HEIGHT } = constants.GRID;
     const numberOfSteps = Math.round(1 / deltaT); // steps per second
@@ -173,7 +115,7 @@ const ADI = (
     const intermediateData = new Float32Array(WIDTH * HEIGHT);
     
    
-    const speedUpFactor = 150;
+    const speedUpFactor = 500;
   
     const timeStep = deltaT*speedUpFactor
 
@@ -299,3 +241,31 @@ const ADI = (
     };
 }
 
+const thomasAlgorithm = (a, b, c, d, x, n) => {
+    // Create temporary arrays to avoid modifying the input
+    const c_prime = new Float32Array(n);
+    const d_prime = new Float32Array(n);
+    
+    // Forward sweep
+    // Ensure we don't divide by zero
+    const b0 = Math.abs(b[0]) < 1e-10 ? 1e-10 : b[0];
+    c_prime[0] = c[0] / b0;  
+    d_prime[0] = d[0] / b0;  
+    
+    for (let i = 1; i < n; i++) {
+        // Ensure numerical stability by avoiding division by very small numbers
+        const denominator = b[i] - a[i] * c_prime[i-1];
+        const m = 1.0 / (Math.abs(denominator) < 1e-10 ? 1e-10 : denominator);
+        c_prime[i] = c[i] * m;
+        d_prime[i] = (d[i] - a[i] * d_prime[i-1]) * m;
+    }
+    
+    // Back substitution
+    x[n-1] = d_prime[n-1];
+    
+    for (let i = n - 2; i >= 0; i--) {
+        x[i] = d_prime[i] - c_prime[i] * x[i+1];
+    }
+    
+   
+};

@@ -34,7 +34,7 @@ export const constants = {
 };
 
 export const initArrays = () => {
-    const gridSize = constants.GRID.WIDTH * constants.GRID.HEIGHT;
+    const gridSize = GRID.WIDTH * GRID.HEIGHT;
 
     dataState.currentConcentrationData = new Float32Array(gridSize);
     dataState.nextConcentrationData = new Float32Array(gridSize);
@@ -44,31 +44,31 @@ export const initArrays = () => {
     const sources = new Float32Array(gridSize);
     const sinks = new Float32Array(gridSize);
 
-    const numberOfSinksAndSources = 1; 
+    const numberOfSinksAndSources = 3; 
+    const smoothFactor = 0.0; // Adjust this value to control the smoothness of the sources and sinks
     
     const sourcePositions = new Set();
     const sinkPositions = new Set();
 
-    const boundaryMargin = 5;
+    const boundaryMargin = 10;
     
-    for(let i = 0; i < numberOfSinksAndSources; i++) {
-        let pos;
-        pos = Math.floor(boundaryMargin * GRID.WIDTH + Math.random() * (gridSize - GRID.WIDTH * boundaryMargin));
-        // Check vertical boundaries are already handled by pos range and then check horizontal boundaries:
-        while(sourcePositions.has(pos) || 
-              (pos % GRID.WIDTH) < boundaryMargin || 
-              (pos % GRID.WIDTH) > GRID.WIDTH - boundaryMargin - 1) {
-            pos = Math.floor(boundaryMargin * GRID.WIDTH + Math.random() * (gridSize - GRID.WIDTH * boundaryMargin));
-        }
+    for (let i = 0; i < numberOfSinksAndSources; i++) {
+        let pos, row, col;
+        // Generate a valid source position
+        do {
+            row = Math.floor(Math.random() * (GRID.HEIGHT - 2 * boundaryMargin)) + boundaryMargin;
+            col = Math.floor(Math.random() * (GRID.WIDTH - 2 * boundaryMargin)) + boundaryMargin;
+            pos = row * GRID.WIDTH + col;
+        } while(sourcePositions.has(pos));
         sourcePositions.add(pos);
         sources[pos] = 1;
     
-        pos = Math.floor(boundaryMargin * GRID.WIDTH + Math.random() * (gridSize - GRID.WIDTH * boundaryMargin));
-        while(sinkPositions.has(pos) || 
-              (pos % GRID.WIDTH) < boundaryMargin || 
-              (pos % GRID.WIDTH) > GRID.WIDTH - boundaryMargin - 1) {
-            pos = Math.floor(boundaryMargin * GRID.WIDTH + Math.random() * (gridSize - GRID.WIDTH * boundaryMargin));
-        }
+        // Generate a valid sink position
+        do {
+            row = Math.floor(Math.random() * (GRID.HEIGHT - 2 * boundaryMargin)) + boundaryMargin;
+            col = Math.floor(Math.random() * (GRID.WIDTH - 2 * boundaryMargin)) + boundaryMargin;
+            pos = row * GRID.WIDTH + col;
+        } while(sinkPositions.has(pos));
         sinkPositions.add(pos);
         sinks[pos] = 1;
     }
@@ -86,7 +86,7 @@ export const initArrays = () => {
         emptyArray,
         emptyArray,
         constants,
-        0,
+        smoothFactor,
         constants.deltaX,
         constants.deltaT,
         "FTCS" 
@@ -100,10 +100,13 @@ export const initArrays = () => {
         emptyArray,
         emptyArray,
         constants,
-        0,
+        smoothFactor,
         constants.deltaX,
         constants.deltaT,
         "FTCS"
     );
     dataState.sinks = result2.currentConcentrationData;
+
+    console.log(dataState.sinks.reduce((acc, value) => acc + value, 0)); 
+    console.log(dataState.sources.reduce((acc, value) => acc + value, 0));
 };
