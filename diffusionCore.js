@@ -102,7 +102,7 @@ const FTCS = ( //Forward-Time Central-Space
                
                 // Source and sink terms
                 const sourceTerm = sources[idx] ;
-                const sinkTerm = sinks[idx] * current[idx];
+                const sinkTerm = sinks[idx] ;//* current[idx];
 
                 // Update concentration
                 next[idx] = current[idx] + diffusionTerm + sourceTerm - sinkTerm;
@@ -200,7 +200,7 @@ const ADI = (
     const timeStep = deltaT
       // Apply sources and sinks before diffusion
       for (let i = 0; i < WIDTH*HEIGHT; i++) {
-        currentConcentrationData[i] += sources[i] //+ -(sinks[i] * currentConcentrationData[i]);
+        currentConcentrationData[i] += sources[i]  -(sinks[i]) //* currentConcentrationData[i]);
     }
 
     const alpha = DIFFUSION_RATE*timeStep/(2*deltaX*deltaX); // non-dimensional diffusion coefficient
