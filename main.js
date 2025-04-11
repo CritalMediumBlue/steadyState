@@ -7,7 +7,7 @@ import { diffusion } from './diffusion.js';
 let stop = false;
 const DIFFUSION_RATE = 100; // micrometers squared per seconds
 const deltaX = 1; // micrometers
-const deltaT = 1* (Math.pow(deltaX, 2)) / (4 * DIFFUSION_RATE); // seconds
+const deltaT = 0.95* (Math.pow(deltaX, 2)) / (4 * DIFFUSION_RATE); // seconds
 const numberOfStepsPerSecond = Math.round(1 / deltaT); // steps per second
 
 console.log("numberOfStepsPerSecond", numberOfStepsPerSecond);
@@ -19,7 +19,7 @@ constants.deltaT = deltaT;
 constants.numberOfStepsPerSecond = numberOfStepsPerSecond;
 
 //constants.method = "FTCS"; 
-constants.method = "ADI"; 
+constants.method = "FTCS"; 
 constants.parallelization = false;
 
 

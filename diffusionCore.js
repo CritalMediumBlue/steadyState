@@ -71,7 +71,7 @@ const FTCS = ( currentData, nextData, sources, sinks, constants,DIFFUSION_RATE,d
                 );
                
                 // Update concentration
-                next[idx] = current[idx] + diffusionTerm + sources[idx] - sinks[idx];
+                next[idx] = current[idx] + diffusionTerm + 0.8*sources[idx] - sinks[idx]*(current[idx])/(1+current[idx]);
             }
         }
 
