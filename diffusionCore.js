@@ -22,35 +22,26 @@ export function diffusionCore(
     deltaT,
     method 
 ) {
-
-    console.log("Diffusion method:", method);
-    console.log(sinks.reduce((acc, value) => acc + value, 0));
-    console.log(sources.reduce((acc, value) => acc + value, 0));
+    let chosenFunction;
         switch(method){
         case "FTCS":
-            return FTCS(
-                currentData, 
-                nextData, 
-                sources, 
-                sinks, 
-                constants,
-                DIFFUSION_RATE,
-                deltaX,
-                deltaT
-            );
+            chosenFunction = FTCS;
+            break;
         case "ADI":
-            return ADI(
-                currentData, 
-                nextData, 
-                sources, 
-                sinks, 
-                constants,
-                DIFFUSION_RATE, 
-                deltaX,
-                deltaT 
-            );
-        
+            chosenFunction = ADI;
+            break;  
     }
+
+    return chosenFunction(
+        currentData, 
+        nextData, 
+        sources, 
+        sinks, 
+        constants,
+        DIFFUSION_RATE,
+        deltaX,
+        deltaT
+    );
 }
 
 /**
@@ -158,20 +149,10 @@ const thomasAlgorithm = (a, b, c, d, x, n) => {
         x[i] = d_prime[i] - c_prime[i] * x[i+1];
     }
     
-    // Check for NaN values and replace with safe values
-    checkForUnexpectedValues(x, 'solution vector');
+   
 };
 
-const checkForUnexpectedValues = (array, name) => {
-    for (let i = 0; i < array.length; i++) {
-        if (isNaN(array[i]) || array[i] === null || array[i] === undefined || 
-            array[i] == Infinity || array[i] == -Infinity ||
-            array[i] > 1e2 ) {
-            console.warn(`Unexpected value detected in ${name} at index ${i}`);
-            array[i] = 0.0; // Replace with a safe value
-        }
-    }
-}
+
 
 const ADI = (
     currentConcentrationData, nextConcentrationData,
@@ -191,41 +172,35 @@ const ADI = (
     // Intermediate array to store results after the first half-step
     const intermediateData = new Float32Array(WIDTH * HEIGHT);
     
-    // Check for NaN values in current concentration data and replace with safe values
-    checkForUnexpectedValues(currentConcentrationData, 'currentConcentrationData');
-    
-
-    
+   
+    const speedUpFactor = 150;
   
-    const timeStep = deltaT
-      // Apply sources and sinks before diffusion
-      for (let i = 0; i < WIDTH*HEIGHT; i++) {
-        currentConcentrationData[i] += sources[i]  -(sinks[i]) //* currentConcentrationData[i]);
-    }
+    const timeStep = deltaT*speedUpFactor
+
 
     const alpha = DIFFUSION_RATE*timeStep/(2*deltaX*deltaX); // non-dimensional diffusion coefficient
 
+    a.fill(-alpha);
+    b.fill(1 + 2*alpha);
+    c.fill(-alpha);
+    
      
     // First half-step: implicit in x-direction, explicit in y-direction
     for (let j = 1; j < HEIGHT - 1; j++) {
         // Set up the tridiagonal system for this row
         for (let i = 1; i < WIDTH - 1; i++) {
-            a[i] = -alpha;
-            b[i] = 1 + 2*alpha;
-            c[i] = -alpha;
+           
             
             // Calculate the right-hand side using explicit method in y-direction
             const idx = j * WIDTH + i;
-            const term_y = alpha * (
+            const term_y = currentConcentrationData[idx]+alpha * (
                 currentConcentrationData[(j-1) * WIDTH + i] - 
                 2 * currentConcentrationData[idx] + 
                 currentConcentrationData[(j+1) * WIDTH + i]
             );
             
-            d[i] = currentConcentrationData[idx] + term_y;
+            d[i] =  term_y + (speedUpFactor/2)*(sources[idx]  -(sinks[idx])) 
             
-            // Check for NaN in right-hand side
-            checkForUnexpectedValues(d, 'right-hand side');
         }
         
         // Apply boundary conditions for the x-direction
@@ -259,29 +234,27 @@ const ADI = (
         intermediateData[j * WIDTH + WIDTH - 1] = intermediateData[j * WIDTH + WIDTH - 2]; // Right boundary
     }
     
-    // Check for NaN values in intermediate data and replace with safe values
-    checkForUnexpectedValues(intermediateData, 'intermediateData');
+
+    a.fill(-alpha);
+    b.fill(1 + 2*alpha);
+    c.fill(-alpha);
     
     // Second half-step: explicit in x-direction, implicit in y-direction
     for (let i = 1; i < WIDTH - 1; i++) {
         // Set up the tridiagonal system for this column
         for (let j = 1; j < HEIGHT - 1; j++) {
-            a[j] = -alpha;
-            b[j] = 1 + 2*alpha;
-            c[j] = -alpha;
+           
             
             // Calculate the right-hand side using explicit method in x-direction
             const idx = j * WIDTH + i;
-            const term_x = alpha * (
+            const term_x = intermediateData[idx] +alpha * (
                 intermediateData[j * WIDTH + (i-1)] - 
                 2 * intermediateData[idx] + 
                 intermediateData[j * WIDTH + (i+1)]
             );
             
-            d[j] = intermediateData[idx] + term_x;
-            
-            // Check for NaN in right-hand side
-            checkForUnexpectedValues(d, 'right-hand side');
+            d[j] =term_x + (speedUpFactor/2)*(sources[idx]  -(sinks[idx]))
+        
         }
         
         // Apply boundary conditions for the y-direction
@@ -315,8 +288,7 @@ const ADI = (
         nextConcentrationData[j * WIDTH + WIDTH - 1] = nextConcentrationData[j * WIDTH + WIDTH - 2]; // Right boundary
     }
     
-    // Check for NaN values in next concentration data and replace with safe values
-    checkForUnexpectedValues(nextConcentrationData, 'nextConcentrationData');
+   
     
     // Update the current concentration data with the new values
     [currentConcentrationData, nextConcentrationData] = [nextConcentrationData, currentConcentrationData];

@@ -1,4 +1,4 @@
-const GRID = { WIDTH: null, HEIGHT: null };  //micrometers
+const GRID = { WIDTH: 100, HEIGHT: 60 };  //micrometers
 import { diffusionCore } from "./diffusionCore.js";
 
 export const sceneState = {
@@ -49,22 +49,29 @@ export const initArrays = () => {
     const sourcePositions = new Set();
     const sinkPositions = new Set();
 
+    const boundaryMargin = 5;
+    
     for(let i = 0; i < numberOfSinksAndSources; i++) {
         let pos;
-        pos = Math.floor(GRID.WIDTH+Math.random() * (gridSize-GRID.WIDTH-1));
-        while(sourcePositions.has(pos) || pos % GRID.WIDTH === 0 || pos % (GRID.WIDTH-1) === 0) {
-            pos = Math.floor(GRID.WIDTH+Math.random() * (gridSize-GRID.WIDTH-1));
+        pos = Math.floor(boundaryMargin * GRID.WIDTH + Math.random() * (gridSize - GRID.WIDTH * boundaryMargin));
+        // Check vertical boundaries are already handled by pos range and then check horizontal boundaries:
+        while(sourcePositions.has(pos) || 
+              (pos % GRID.WIDTH) < boundaryMargin || 
+              (pos % GRID.WIDTH) > GRID.WIDTH - boundaryMargin - 1) {
+            pos = Math.floor(boundaryMargin * GRID.WIDTH + Math.random() * (gridSize - GRID.WIDTH * boundaryMargin));
         }
         sourcePositions.add(pos);
-        sources[pos] = 1000/constants.numberOfStepsPerSecond; 
-        pos = Math.floor(GRID.WIDTH+Math.random() * (gridSize-GRID.WIDTH-1));
-        while(sinkPositions.has(pos) || pos % GRID.WIDTH === 0 || pos % (GRID.WIDTH-1) === 0) {
-            pos = Math.floor(GRID.WIDTH+Math.random() * (gridSize-GRID.WIDTH-1));
+        sources[pos] = 1;
+    
+        pos = Math.floor(boundaryMargin * GRID.WIDTH + Math.random() * (gridSize - GRID.WIDTH * boundaryMargin));
+        while(sinkPositions.has(pos) || 
+              (pos % GRID.WIDTH) < boundaryMargin || 
+              (pos % GRID.WIDTH) > GRID.WIDTH - boundaryMargin - 1) {
+            pos = Math.floor(boundaryMargin * GRID.WIDTH + Math.random() * (gridSize - GRID.WIDTH * boundaryMargin));
         }
         sinkPositions.add(pos);
-        sinks[pos] = 1000/constants.numberOfStepsPerSecond; 
+        sinks[pos] = 1;
     }
-
     // assign the sources array
     dataState.sources = sources;
     dataState.sinks = sinks;

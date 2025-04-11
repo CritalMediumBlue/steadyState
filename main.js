@@ -17,10 +17,9 @@ constants.DIFFUSION_RATE = DIFFUSION_RATE;
 constants.deltaX = deltaX;
 constants.deltaT = deltaT;
 constants.numberOfStepsPerSecond = numberOfStepsPerSecond;
-constants.GRID.WIDTH = 100; // micrometers
-constants.GRID.HEIGHT = 60; // micrometers
+
+//constants.method = "FTCS"; 
 constants.method = "ADI"; 
-//constants.method = "ADI"; 
 constants.parallelization = false;
 
 
