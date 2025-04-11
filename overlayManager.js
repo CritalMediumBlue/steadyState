@@ -13,6 +13,7 @@ export const updateLoggsOverlay = () => {
     if (overlay) {
         overlay.innerText = `Step: ${animationState.currentTimeStep}
 Time: ${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}
-`
+Method: ${constants.method}
+Parallelization: ${constants.parallelization}`;
     }
 };

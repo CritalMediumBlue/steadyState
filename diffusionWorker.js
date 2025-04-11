@@ -8,10 +8,10 @@ self.onmessage = function(e) {
         sources, 
         sinks,
         constants,
-        numberOfStepsPerSecond,
         DIFFUSION_RATE,
         deltaX,
-        deltaT
+        deltaT,
+         
     } = e.data;
     
     // Perform diffusion calculation
@@ -21,10 +21,10 @@ self.onmessage = function(e) {
         sources, 
         sinks, 
         constants,
-        numberOfStepsPerSecond,
         DIFFUSION_RATE,
         deltaX,
         deltaT,
+        constants.method
     );
     
     // Send result back to main thread

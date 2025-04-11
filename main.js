@@ -19,7 +19,9 @@ constants.deltaT = deltaT;
 constants.numberOfStepsPerSecond = numberOfStepsPerSecond;
 constants.GRID.WIDTH = 100; // micrometers
 constants.GRID.HEIGHT = 60; // micrometers
-constants.diffSourceAndSinkRate = 0
+constants.method = "ADI"; 
+//constants.method = "ADI"; 
+constants.parallelization = false;
 
 
 // Create Web Worker for diffusion calculations
@@ -39,8 +41,15 @@ const requestDiffusionCalculation = () => {
         currentConcentrationData, 
         nextConcentrationData, 
         sources, 
-        sinks 
+        sinks
+         
     } = dataState;
+
+    const {
+        DIFFUSION_RATE,
+        deltaX,
+        deltaT,
+    } = constants;
 
     diffusionWorker.postMessage({
         currentConcentrationData,
@@ -48,10 +57,9 @@ const requestDiffusionCalculation = () => {
         sources,
         sinks,
         constants,
-        numberOfStepsPerSecond,
         DIFFUSION_RATE,
         deltaX,
-        deltaT
+        deltaT,
     });
 };
 
@@ -63,9 +71,6 @@ diffusionWorker.onmessage = function(e) {
     dataState.currentConcentrationData = currentConcentrationData;
     dataState.nextConcentrationData = nextConcentrationData;
     
-    // Update scene and reset worker busy flag
-    stop = updateSurfaceMesh();
-    updateLoggsOverlay();
     animationState.currentTimeStep++;
     
     isWorkerBusy = false;
@@ -77,9 +82,6 @@ diffusionWorker.onerror = function(error) {
     isWorkerBusy = false;
 };
 
-
-
-
 /**
  * Update the scene for the current time step
  */
@@ -88,31 +90,29 @@ const updateScene = () => {
     stop = updateSurfaceMesh();
     updateLoggsOverlay();
 
-   
-
-    if(animationState.currentTimeStep < 300) {
-        //requestDiffusionCalculation();
-        [dataState.currentConcentrationData, dataState.nextConcentrationData] = diffusion()
-
+    if(animationState.currentTimeStep < 5000) {
+        if (constants.parallelization) {
+            requestDiffusionCalculation();  //uncomment this line to use the worker instead of the main thread
+        } else {
+            [dataState.nextConcentrationData, dataState.currentConcentrationData] = diffusion();
+        }
+        
     } 
-    
 };
 
 /**
  * Animation loop
  */
 const animate = () => {
- 
-        animationState.animationFrameId = requestAnimationFrame(animate);
-        // Render every frame
-        sceneState.renderer.render(sceneState.scene, sceneState.camera);
-        if (!stop) {
-            updateScene();
-        } else {
-            cancelAnimationFrame(animationState.animationFrameId);
-            console.log("Simulation stopped due to NaN values.");
-        }
-  
+    animationState.animationFrameId = requestAnimationFrame(animate);
+    // Render every frame
+    sceneState.renderer.render(sceneState.scene, sceneState.camera);
+    if (!stop) {
+        updateScene();
+    } else {
+        cancelAnimationFrame(animationState.animationFrameId);
+        console.log("Simulation stopped due to NaN values.");
+    }
 };
 
 // Setup scene and start animation when the page loads

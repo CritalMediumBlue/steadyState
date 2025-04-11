@@ -17,21 +17,73 @@ export function diffusionCore(
     sources, 
     sinks, 
     constants,
-    numberOfSteps,
+    DIFFUSION_RATE,
+    deltaX,
+    deltaT,
+    method 
+) {
+
+    console.log("Diffusion method:", method);
+    console.log(sinks.reduce((acc, value) => acc + value, 0));
+    console.log(sources.reduce((acc, value) => acc + value, 0));
+        switch(method){
+        case "FTCS":
+            return FTCS(
+                currentData, 
+                nextData, 
+                sources, 
+                sinks, 
+                constants,
+                DIFFUSION_RATE,
+                deltaX,
+                deltaT
+            );
+        case "ADI":
+            return ADI(
+                currentData, 
+                nextData, 
+                sources, 
+                sinks, 
+                constants,
+                DIFFUSION_RATE, 
+                deltaX,
+                deltaT 
+            );
+        
+    }
+}
+
+/**
+ * Forward-Time Central-Space (FTCS) method for solving the diffusion equation
+ * @param {Float32Array} currentData - Current concentration data
+ * @param {Float32Array} nextData - Next concentration data buffer
+ * @param {Float32Array} sources - Source terms
+ * @param {Float32Array} sinks - Sink terms
+ * @param {Object} constants - Simulation constants
+ * @param {number} numberOfSteps - Number of simulation steps
+ * @param {number} DIFFUSION_RATE - Diffusion rate
+ * @param {number} deltaX - Spatial step size
+ * @param {number} deltaT - Time step size
+ * @returns {Object} Updated concentration data
+ */
+
+const FTCS = ( //Forward-Time Central-Space
+    currentData, 
+    nextData, 
+    sources, 
+    sinks, 
+    constants,
     DIFFUSION_RATE,
     deltaX,
     deltaT
-) {
+) => {
     const { WIDTH, HEIGHT } = constants.GRID;
-
- 
+    const numberOfSteps = Math.round(1 / deltaT); // steps per second
     // Create copies of input arrays to avoid modifying originals if needed
     let current = new Float32Array(currentData);
     let next = new Float32Array(nextData);
 
-    
-
-    for (let i = 0; i < numberOfSteps; i++) {
+    for (let step = 0; step < numberOfSteps; step++) {
         // Diffusion calculation with source/sink terms
         for (let y = 1; y < HEIGHT - 1; y++) {
             for (let x = 1; x < WIDTH - 1; x++) {
@@ -49,7 +101,7 @@ export function diffusionCore(
                 );
                
                 // Source and sink terms
-                const sourceTerm = sources[idx] * 0.1;
+                const sourceTerm = sources[idx] ;
                 const sinkTerm = sinks[idx] * current[idx];
 
                 // Update concentration
@@ -57,7 +109,7 @@ export function diffusionCore(
             }
         }
 
-        // Reflective and absorbant boundary conditions
+        // Reflective boundary conditions
         for (let i = 0; i < WIDTH; i++) {
             // Top and bottom boundaries
             next[i] = next[WIDTH + i];
@@ -78,10 +130,7 @@ export function diffusionCore(
         currentConcentrationData: current,
         nextConcentrationData: next
     };
-}
-
-
-
+};
 
 const thomasAlgorithm = (a, b, c, d, x, n) => {
     // Create temporary arrays to avoid modifying the input
@@ -124,11 +173,13 @@ const checkForUnexpectedValues = (array, name) => {
     }
 }
 
-
-
-export const ADI = (WIDTH, HEIGHT, 
+const ADI = (
     currentConcentrationData, nextConcentrationData,
-    sources, sinks, DIFFUSION_RATE, deltaT, deltaX) => {
+    sources, sinks, constants,
+    DIFFUSION_RATE, deltaX, deltaT) => {
+
+    const { WIDTH, HEIGHT } = constants.GRID;
+    const numberOfSteps = Math.round(1 / deltaT); // steps per second
     
     // Temporary arrays for the ADI method
     const a = new Float32Array(Math.max(WIDTH, HEIGHT)); // Lower diagonal
@@ -143,20 +194,18 @@ export const ADI = (WIDTH, HEIGHT,
     // Check for NaN values in current concentration data and replace with safe values
     checkForUnexpectedValues(currentConcentrationData, 'currentConcentrationData');
     
-    // Apply sources and sinks before diffusion
-    for (let i = 0; i < WIDTH*HEIGHT; i++) {
-        currentConcentrationData[i] += sources[i]*0.1 - (sinks[i]*currentConcentrationData[i])/(2+currentConcentrationData[i]);
-    }
+
     
-    // Calculate coefficients for the ADI method
-    // Using the same diffusion rate as the explicit method for consistency
-    const timeStep = deltaT * (60/1); // Convert to seconds
-    //diffusion rate is in micrometers^2/s
-    //deltaX is in micrometers
-    //deltaT is in seconds
+  
+    const timeStep = deltaT
+      // Apply sources and sinks before diffusion
+      for (let i = 0; i < WIDTH*HEIGHT; i++) {
+        currentConcentrationData[i] += sources[i] //+ -(sinks[i] * currentConcentrationData[i]);
+    }
 
     const alpha = DIFFUSION_RATE*timeStep/(2*deltaX*deltaX); // non-dimensional diffusion coefficient
-    
+
+     
     // First half-step: implicit in x-direction, explicit in y-direction
     for (let j = 1; j < HEIGHT - 1; j++) {
         // Set up the tridiagonal system for this row
@@ -271,5 +320,10 @@ export const ADI = (WIDTH, HEIGHT,
     
     // Update the current concentration data with the new values
     [currentConcentrationData, nextConcentrationData] = [nextConcentrationData, currentConcentrationData];
-    return [currentConcentrationData, nextConcentrationData];
-};
+
+    return {
+        currentConcentrationData,
+        nextConcentrationData
+    };
+}
+

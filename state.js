@@ -19,7 +19,8 @@ export const dataState = {
     nextConcentrationData: null,
     colors: null,
     sources: null,
-    sinks: null
+    sinks: null,
+    
 };
 
 export const constants = {
@@ -29,6 +30,7 @@ export const constants = {
     deltaT: null, // seconds
     numberOfStepsPerSecond: null, // steps per second
     diffSourceAndSinkRate:null, // micrometers squared per seconds
+    method: null
 };
 
 export const initArrays = () => {
@@ -42,22 +44,22 @@ export const initArrays = () => {
     const sources = new Float32Array(gridSize);
     const sinks = new Float32Array(gridSize);
 
-    const numberOfSinksAndSources = 8; 
+    const numberOfSinksAndSources = 1; 
     
     const sourcePositions = new Set();
     const sinkPositions = new Set();
 
     for(let i = 0; i < numberOfSinksAndSources; i++) {
         let pos;
-        pos = Math.floor(GRID.WIDTH+Math.random() * (gridSize-GRID.WIDTH));
-        while(sourcePositions.has(pos)) {
-            pos = Math.floor(Math.random() * gridSize);
+        pos = Math.floor(GRID.WIDTH+Math.random() * (gridSize-GRID.WIDTH-1));
+        while(sourcePositions.has(pos) || pos % GRID.WIDTH === 0 || pos % (GRID.WIDTH-1) === 0) {
+            pos = Math.floor(GRID.WIDTH+Math.random() * (gridSize-GRID.WIDTH-1));
         }
         sourcePositions.add(pos);
-        sources[pos] = 10000/constants.numberOfStepsPerSecond; 
-        pos = Math.floor(Math.random() * gridSize);
-        while(sinkPositions.has(pos)) {
-            pos = Math.floor(Math.random() * gridSize);
+        sources[pos] = 1000/constants.numberOfStepsPerSecond; 
+        pos = Math.floor(GRID.WIDTH+Math.random() * (gridSize-GRID.WIDTH-1));
+        while(sinkPositions.has(pos) || pos % GRID.WIDTH === 0 || pos % (GRID.WIDTH-1) === 0) {
+            pos = Math.floor(GRID.WIDTH+Math.random() * (gridSize-GRID.WIDTH-1));
         }
         sinkPositions.add(pos);
         sinks[pos] = 1000/constants.numberOfStepsPerSecond; 
@@ -77,10 +79,10 @@ export const initArrays = () => {
         emptyArray,
         emptyArray,
         constants,
-        3,
-        constants.DIFFUSION_RATE,
+        0,
         constants.deltaX,
-        constants.deltaT
+        constants.deltaT,
+        "FTCS" 
     );
     dataState.sources = result.currentConcentrationData;
 
@@ -91,13 +93,10 @@ export const initArrays = () => {
         emptyArray,
         emptyArray,
         constants,
-        3,
-        constants.DIFFUSION_RATE,
+        0,
         constants.deltaX,
-        constants.deltaT
+        constants.deltaT,
+        "FTCS"
     );
     dataState.sinks = result2.currentConcentrationData;
-            
-
- 
 };

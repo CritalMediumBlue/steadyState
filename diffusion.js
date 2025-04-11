@@ -3,9 +3,10 @@ import { diffusionCore } from './diffusionCore.js';
 
 /**
  * Perform diffusion simulation step
+ * @param {string} [method='FTCS'] - Numerical method to use for diffusion
  * @returns {[Float32Array, Float32Array]} Updated concentration data
  */
-export const diffusion = () => {
+export const diffusion = ( ) => {
     const { 
         currentConcentrationData, 
         nextConcentrationData, 
@@ -13,16 +14,23 @@ export const diffusion = () => {
         sinks 
     } = dataState;
 
+    const {
+        DIFFUSION_RATE,
+        deltaX,
+        deltaT,
+        method
+    } = constants;
+
     const result = diffusionCore(
         currentConcentrationData, 
         nextConcentrationData, 
         sources, 
         sinks, 
         constants,
-        constants.numberOfStepsPerSecond,
-        constants.DIFFUSION_RATE,
-        constants.deltaX,
-        constants.deltaT,
+        DIFFUSION_RATE,
+        deltaX,
+        deltaT,
+        method
     );
 
     // Update data state
