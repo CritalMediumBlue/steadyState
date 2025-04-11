@@ -5,7 +5,7 @@
  * @param {Float32Array} sources - Source terms
  * @param {Float32Array} sinks - Sink terms
  * @param {Object} constants - Simulation constants
- * @param {number} numberOfStepsPerSecond - Number of simulation steps per second
+ * @param {number} numberOfSteps - Number of simulation steps 
  * @param {number} DIFFUSION_RATE - Diffusion rate
  * @param {number} deltaX - Spatial step size
  * @param {number} deltaT - Time step size
@@ -17,7 +17,7 @@ export function diffusionCore(
     sources, 
     sinks, 
     constants,
-    numberOfStepsPerSecond,
+    numberOfSteps,
     DIFFUSION_RATE,
     deltaX,
     deltaT
@@ -29,12 +29,9 @@ export function diffusionCore(
     let current = new Float32Array(currentData);
     let next = new Float32Array(nextData);
 
-    // diffuse sources and sinks
-    //diffuseSourcesAndSinks(sources, sinks, deltaT, deltaX, DIFFUSION_RATE,constants);
-
     
 
-    for (let i = 0; i < numberOfStepsPerSecond; i++) {
+    for (let i = 0; i < numberOfSteps; i++) {
         // Diffusion calculation with source/sink terms
         for (let y = 1; y < HEIGHT - 1; y++) {
             for (let x = 1; x < WIDTH - 1; x++) {
@@ -50,7 +47,7 @@ export function diffusionCore(
                     current[y * WIDTH + (x + 1)] -
                     4 * current[idx]
                 );
-
+               
                 // Source and sink terms
                 const sourceTerm = sources[idx] * 0.1;
                 const sinkTerm = sinks[idx] * current[idx];
@@ -84,50 +81,195 @@ export function diffusionCore(
 }
 
 
-function diffuseSourcesAndSinks(sources, sinks, deltaT, deltaX, DIFFUSION_RATE,constants) {
-    const { WIDTH, HEIGHT } = constants.GRID;
 
 
-    const tempSources = new Float32Array(sources);
-    const tempSinks = new Float32Array(sinks);
+const thomasAlgorithm = (a, b, c, d, x, n) => {
+    // Create temporary arrays to avoid modifying the input
+    const c_prime = new Float32Array(n);
+    const d_prime = new Float32Array(n);
+    
+    // Forward sweep
+    // Ensure we don't divide by zero
+    const b0 = Math.abs(b[0]) < 1e-10 ? 1e-10 : b[0];
+    c_prime[0] = c[0] / b0;
+    d_prime[0] = d[0] / b0;
+    
+    for (let i = 1; i < n; i++) {
+        // Ensure numerical stability by avoiding division by very small numbers
+        const denominator = b[i] - a[i] * c_prime[i-1];
+        const m = 1.0 / (Math.abs(denominator) < 1e-10 ? 1e-10 : denominator);
+        c_prime[i] = c[i] * m;
+        d_prime[i] = (d[i] - a[i] * d_prime[i-1]) * m;
+    }
+    
+    // Back substitution
+    x[n-1] = d_prime[n-1];
+    
+    for (let i = n - 2; i >= 0; i--) {
+        x[i] = d_prime[i] - c_prime[i] * x[i+1];
+    }
+    
+    // Check for NaN values and replace with safe values
+    checkForUnexpectedValues(x, 'solution vector');
+};
 
-    //let's first diffuse the sources and sinks a bit
-    // Diffuse sources and sinks
-    for (let y = 1; y < HEIGHT - 1; y++) {
-        for (let x = 1; x < WIDTH - 1; x++) {
-            const idx = y * WIDTH + x;
-
-            const DiffusionParam = 0.0*DIFFUSION_RATE * deltaT / (deltaX ** 2);
-
-            // Diffusion term
-
-            const diffusionTermSources = DiffusionParam * (
-                tempSources[(y - 1) * WIDTH + x] +
-                tempSources[(y + 1) * WIDTH + x] +
-                tempSources[y * WIDTH + (x - 1)] +
-                tempSources[y * WIDTH + (x + 1)] -
-                4 * tempSources[idx]
-            );
-            const diffusionTermSinks = DiffusionParam * (
-                tempSinks[(y - 1) * WIDTH + x] +
-                tempSinks[(y + 1) * WIDTH + x] +
-                tempSinks[y * WIDTH + (x - 1)] +
-                tempSinks[y * WIDTH + (x + 1)] -
-                4 * tempSinks[idx]
-            );
-
-            
-            // Update sources and sinks
-            sources[idx] = tempSources[idx] + diffusionTermSources;
-            sinks[idx] = tempSinks[idx] + diffusionTermSinks;
-
-
-            
+const checkForUnexpectedValues = (array, name) => {
+    for (let i = 0; i < array.length; i++) {
+        if (isNaN(array[i]) || array[i] === null || array[i] === undefined || 
+            array[i] == Infinity || array[i] == -Infinity ||
+            array[i] > 1e2 ) {
+            console.warn(`Unexpected value detected in ${name} at index ${i}`);
+            array[i] = 0.0; // Replace with a safe value
         }
     }
-
-    return {
-        sources,
-        sinks
-    };
 }
+
+
+
+export const ADI = (WIDTH, HEIGHT, 
+    currentConcentrationData, nextConcentrationData,
+    sources, sinks, DIFFUSION_RATE, deltaT, deltaX) => {
+    
+    // Temporary arrays for the ADI method
+    const a = new Float32Array(Math.max(WIDTH, HEIGHT)); // Lower diagonal
+    const b = new Float32Array(Math.max(WIDTH, HEIGHT)); // Main diagonal
+    const c = new Float32Array(Math.max(WIDTH, HEIGHT)); // Upper diagonal
+    const d = new Float32Array(Math.max(WIDTH, HEIGHT)); // Right-hand side
+    const x = new Float32Array(Math.max(WIDTH, HEIGHT)); // Solution vector
+    
+    // Intermediate array to store results after the first half-step
+    const intermediateData = new Float32Array(WIDTH * HEIGHT);
+    
+    // Check for NaN values in current concentration data and replace with safe values
+    checkForUnexpectedValues(currentConcentrationData, 'currentConcentrationData');
+    
+    // Apply sources and sinks before diffusion
+    for (let i = 0; i < WIDTH*HEIGHT; i++) {
+        currentConcentrationData[i] += sources[i]*0.1 - (sinks[i]*currentConcentrationData[i])/(2+currentConcentrationData[i]);
+    }
+    
+    // Calculate coefficients for the ADI method
+    // Using the same diffusion rate as the explicit method for consistency
+    const timeStep = deltaT * (60/1); // Convert to seconds
+    //diffusion rate is in micrometers^2/s
+    //deltaX is in micrometers
+    //deltaT is in seconds
+
+    const alpha = DIFFUSION_RATE*timeStep/(2*deltaX*deltaX); // non-dimensional diffusion coefficient
+    
+    // First half-step: implicit in x-direction, explicit in y-direction
+    for (let j = 1; j < HEIGHT - 1; j++) {
+        // Set up the tridiagonal system for this row
+        for (let i = 1; i < WIDTH - 1; i++) {
+            a[i] = -alpha;
+            b[i] = 1 + 2*alpha;
+            c[i] = -alpha;
+            
+            // Calculate the right-hand side using explicit method in y-direction
+            const idx = j * WIDTH + i;
+            const term_y = alpha * (
+                currentConcentrationData[(j-1) * WIDTH + i] - 
+                2 * currentConcentrationData[idx] + 
+                currentConcentrationData[(j+1) * WIDTH + i]
+            );
+            
+            d[i] = currentConcentrationData[idx] + term_y;
+            
+            // Check for NaN in right-hand side
+            checkForUnexpectedValues(d, 'right-hand side');
+        }
+        
+        // Apply boundary conditions for the x-direction
+        // Left boundary (reflective)
+        b[1] = b[1] + a[1]; // Absorb the coefficient for the ghost point
+        a[1] = 0;
+        
+        // Right boundary (reflective)
+        b[WIDTH-2] = b[WIDTH-2] + c[WIDTH-2]; // Absorb the coefficient for the ghost point
+        c[WIDTH-2] = 0;
+        
+        // Solve the tridiagonal system for this row
+        thomasAlgorithm(a, b, c, d, x, WIDTH-1);
+        
+        // Store the results in the intermediate array
+        for (let i = 1; i < WIDTH - 1; i++) {
+            intermediateData[j * WIDTH + i] = x[i];
+        }
+    }
+    
+    // Apply boundary conditions to the intermediate data
+    // Top and bottom boundaries (copy from adjacent interior points)
+    for (let i = 0; i < WIDTH; i++) {
+        intermediateData[i] = intermediateData[WIDTH + i]; // Top boundary
+        intermediateData[(HEIGHT-1) * WIDTH + i] = intermediateData[(HEIGHT-2) * WIDTH + i]; // Bottom boundary
+    }
+    
+    // Left and right boundaries (copy from adjacent interior points)
+    for (let j = 0; j < HEIGHT; j++) {
+        intermediateData[j * WIDTH] = intermediateData[j * WIDTH + 1]; // Left boundary
+        intermediateData[j * WIDTH + WIDTH - 1] = intermediateData[j * WIDTH + WIDTH - 2]; // Right boundary
+    }
+    
+    // Check for NaN values in intermediate data and replace with safe values
+    checkForUnexpectedValues(intermediateData, 'intermediateData');
+    
+    // Second half-step: explicit in x-direction, implicit in y-direction
+    for (let i = 1; i < WIDTH - 1; i++) {
+        // Set up the tridiagonal system for this column
+        for (let j = 1; j < HEIGHT - 1; j++) {
+            a[j] = -alpha;
+            b[j] = 1 + 2*alpha;
+            c[j] = -alpha;
+            
+            // Calculate the right-hand side using explicit method in x-direction
+            const idx = j * WIDTH + i;
+            const term_x = alpha * (
+                intermediateData[j * WIDTH + (i-1)] - 
+                2 * intermediateData[idx] + 
+                intermediateData[j * WIDTH + (i+1)]
+            );
+            
+            d[j] = intermediateData[idx] + term_x;
+            
+            // Check for NaN in right-hand side
+            checkForUnexpectedValues(d, 'right-hand side');
+        }
+        
+        // Apply boundary conditions for the y-direction
+        // Top boundary (reflective)
+        b[1] = b[1] + a[1]; // Absorb the coefficient for the ghost point
+        a[1] = 0;
+        
+        // Bottom boundary (reflective)
+        b[HEIGHT-2] = b[HEIGHT-2] + c[HEIGHT-2]; // Absorb the coefficient for the ghost point
+        c[HEIGHT-2] = 0;
+        
+        // Solve the tridiagonal system for this column
+        thomasAlgorithm(a, b, c, d, x, HEIGHT-1);
+        
+        // Store the results in the next concentration data array
+        for (let j = 1; j < HEIGHT - 1; j++) {
+            nextConcentrationData[j * WIDTH + i] = x[j];
+        }
+    }
+    
+    // Apply boundary conditions to the final data
+    // Top and bottom boundaries (copy from adjacent interior points)
+    for (let i = 0; i < WIDTH; i++) {
+        nextConcentrationData[i] = nextConcentrationData[WIDTH + i]; // Top boundary
+        nextConcentrationData[(HEIGHT-1) * WIDTH + i] = nextConcentrationData[(HEIGHT-2) * WIDTH + i]; // Bottom boundary
+    }
+    
+    // Left and right boundaries (copy from adjacent interior points)
+    for (let j = 0; j < HEIGHT; j++) {
+        nextConcentrationData[j * WIDTH] = nextConcentrationData[j * WIDTH + 1]; // Left boundary
+        nextConcentrationData[j * WIDTH + WIDTH - 1] = nextConcentrationData[j * WIDTH + WIDTH - 2]; // Right boundary
+    }
+    
+    // Check for NaN values in next concentration data and replace with safe values
+    checkForUnexpectedValues(nextConcentrationData, 'nextConcentrationData');
+    
+    // Update the current concentration data with the new values
+    [currentConcentrationData, nextConcentrationData] = [nextConcentrationData, currentConcentrationData];
+    return [currentConcentrationData, nextConcentrationData];
+};

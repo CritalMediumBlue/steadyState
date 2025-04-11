@@ -1,4 +1,5 @@
 const GRID = { WIDTH: null, HEIGHT: null };  //micrometers
+import { diffusionCore } from "./diffusionCore.js";
 
 export const sceneState = {
     scene: null,
@@ -27,6 +28,7 @@ export const constants = {
     deltaX: null, // micrometers
     deltaT: null, // seconds
     numberOfStepsPerSecond: null, // steps per second
+    diffSourceAndSinkRate:null, // micrometers squared per seconds
 };
 
 export const initArrays = () => {
@@ -37,10 +39,10 @@ export const initArrays = () => {
     dataState.colors = new Float32Array(gridSize * 3);
     
     // Initialize sources and sinks
-    dataState.sources = new Float32Array(gridSize);
-    dataState.sinks = new Float32Array(gridSize);
+    const sources = new Float32Array(gridSize);
+    const sinks = new Float32Array(gridSize);
 
-    const numberOfSinksAndSources = 5; 
+    const numberOfSinksAndSources = 8; 
     
     const sourcePositions = new Set();
     const sinkPositions = new Set();
@@ -52,14 +54,50 @@ export const initArrays = () => {
             pos = Math.floor(Math.random() * gridSize);
         }
         sourcePositions.add(pos);
-        dataState.sources[pos] = 10000/constants.numberOfStepsPerSecond; 
+        sources[pos] = 10000/constants.numberOfStepsPerSecond; 
         pos = Math.floor(Math.random() * gridSize);
         while(sinkPositions.has(pos)) {
             pos = Math.floor(Math.random() * gridSize);
         }
         sinkPositions.add(pos);
-        dataState.sinks[pos] = 1000/constants.numberOfStepsPerSecond; 
+        sinks[pos] = 1000/constants.numberOfStepsPerSecond; 
     }
+
+    // assign the sources array
+    dataState.sources = sources;
+    dataState.sinks = sinks;
+    
+     // diffuse sources
+    const emptyArray = new Float32Array(gridSize);
+    emptyArray.fill(0);
+   
+    const result = diffusionCore(
+        sources,
+        emptyArray,
+        emptyArray,
+        emptyArray,
+        constants,
+        3,
+        constants.DIFFUSION_RATE,
+        constants.deltaX,
+        constants.deltaT
+    );
+    dataState.sources = result.currentConcentrationData;
+
+    // diffuse sinks
+    const result2 = diffusionCore(
+        sinks,
+        emptyArray,
+        emptyArray,
+        emptyArray,
+        constants,
+        3,
+        constants.DIFFUSION_RATE,
+        constants.deltaX,
+        constants.deltaT
+    );
+    dataState.sinks = result2.currentConcentrationData;
+            
 
  
 };

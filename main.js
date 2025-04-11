@@ -7,7 +7,7 @@ import { diffusion } from './diffusion.js';
 let stop = false;
 const DIFFUSION_RATE = 100; // micrometers squared per seconds
 const deltaX = 1; // micrometers
-const deltaT = 0.3* (Math.pow(deltaX, 2)) / (4 * DIFFUSION_RATE); // seconds
+const deltaT = 0.5* (Math.pow(deltaX, 2)) / (4 * DIFFUSION_RATE); // seconds
 const numberOfStepsPerSecond = Math.round(1 / deltaT); // steps per second
 
 console.log("numberOfStepsPerSecond", numberOfStepsPerSecond);
@@ -18,8 +18,8 @@ constants.deltaX = deltaX;
 constants.deltaT = deltaT;
 constants.numberOfStepsPerSecond = numberOfStepsPerSecond;
 constants.GRID.WIDTH = 100; // micrometers
-constants.GRID.HEIGHT = 100; // micrometers
-
+constants.GRID.HEIGHT = 60; // micrometers
+constants.diffSourceAndSinkRate = 0
 
 
 // Create Web Worker for diffusion calculations

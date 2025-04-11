@@ -24,7 +24,7 @@ self.onmessage = function(e) {
         numberOfStepsPerSecond,
         DIFFUSION_RATE,
         deltaX,
-        deltaT
+        deltaT,
     );
     
     // Send result back to main thread

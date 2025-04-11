@@ -6,7 +6,7 @@ import { animationState, constants} from './state.js';
  */
 export const updateLoggsOverlay = () => {
     const overlay = document.getElementById("text-overlay");
-    const timeInMinutes = animationState.currentTimeStep * constants.deltaT * (1/60);
+    const timeInMinutes = animationState.currentTimeStep* (1/60);
     const hours = Math.floor(timeInMinutes / 60);
     const minutes = Math.floor(timeInMinutes % 60);
     const seconds = Math.floor((timeInMinutes * 60) % 60);

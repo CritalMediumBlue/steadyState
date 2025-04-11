@@ -22,7 +22,7 @@ export const diffusion = () => {
         constants.numberOfStepsPerSecond,
         constants.DIFFUSION_RATE,
         constants.deltaX,
-        constants.deltaT
+        constants.deltaT,
     );
 
     // Update data state
