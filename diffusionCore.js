@@ -48,7 +48,7 @@ const FTCS = ( currentData, nextData, sources, sinks, constants,DIFFUSION_RATE,d
     let next = new Float32Array(nextData);
     const DiffusionParam = DIFFUSION_RATE * deltaT / (deltaX ** 2);
 
-    const scaleSinksAndSources = 800/numberOfStepsPerSecond;
+    const scaleSinksAndSources = 800/numberOfStepsPerSecond; //800 units of concentration per second
 
 
     for (let step = 0; step < numberOfStepsPerSecond; step++) {
@@ -109,7 +109,7 @@ const FTCS = ( currentData, nextData, sources, sinks, constants,DIFFUSION_RATE,d
 const ADI = (currentConcentrationData, nextConcentrationData, sources, sinks, constants, DIFFUSION_RATE, deltaX, deltaT) => {
 
     const { WIDTH, HEIGHT } = constants.GRID;
-    const scaleSinksAndSources = 800;
+    const scaleSinksAndSources = 800; // 800 units of concentration per second
     
     // Define the simulation time step used by the ADI method
     const timeStep = 1/10; // seconds
@@ -148,11 +148,12 @@ const ADI = (currentConcentrationData, nextConcentrationData, sources, sinks, co
     
                 d[i] = term_y;
             }
-    
+            
             // Apply boundary conditions for the x-direction
             // Left boundary (reflective)
             b[1] = b[1] + a[1]; // Absorb the coefficient for the ghost point
             a[1] = 0;
+            
             // Right boundary (reflective)
             b[WIDTH - 2] = b[WIDTH - 2] + c[WIDTH - 2]; // Absorb the coefficient for the ghost point
             c[WIDTH - 2] = 0;
@@ -206,15 +207,17 @@ const ADI = (currentConcentrationData, nextConcentrationData, sources, sinks, co
             // Bottom boundary (reflective)
             b[HEIGHT - 2] = b[HEIGHT - 2] + c[HEIGHT - 2]; // Absorb the coefficient for the ghost point
             c[HEIGHT - 2] = 0;
+
+            
     
             // Solve the tridiagonal system for this column
             thomasAlgorithm(a, b, c, d, x, HEIGHT - 1);
     
             // Store the results in the next concentration data array
             for (let j = 1; j < HEIGHT - 1; j++) {
-                if (x[i] < 0) {
-                    console.warn("Concentration went negative " + x[i]);
-                    x[i] = 0; // Ensure concentration doesn't go negative
+                if (x[j] < 0) {
+                    console.warn("Concentration went negative " + x[j]);
+                    x[j] = 0; // Ensure concentration doesn't go negative
                 }
                 nextConcentrationData[j * WIDTH + i] = x[j];
             }

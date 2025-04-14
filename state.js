@@ -38,8 +38,8 @@ export const initArrays = () => {
 
     dataState.currentConcentrationData = new Float32Array(gridSize);
     dataState.nextConcentrationData = new Float32Array(gridSize);
-    dataState.currentConcentrationData.fill(10);
-    dataState.nextConcentrationData.fill(10);
+    dataState.currentConcentrationData.fill(20);
+    dataState.nextConcentrationData.fill(20);
     dataState.colors = new Float32Array(gridSize * 3);
     
     // Initialize sources and sinks

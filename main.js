@@ -19,7 +19,7 @@ constants.deltaT = deltaT;
 constants.numberOfStepsPerSecond = numberOfStepsPerSecond;
 
 //constants.method = "FTCS"; 
-constants.method = "FTCS"; 
+constants.method = "ADI"; 
 constants.parallelization = false;
 
 
@@ -89,25 +89,51 @@ const updateScene = () => {
     stop = updateSurfaceMesh();
     updateLoggsOverlay();
 
-    if(animationState.currentTimeStep < 1000) {
+
+
+    if(!steadyState && !stop) {
         if (constants.parallelization) {
             requestDiffusionCalculation();  //uncomment this line to use the worker instead of the main thread
         } else {
             [dataState.nextConcentrationData, dataState.currentConcentrationData] = diffusion();
         }
         
-    }  else if (init) {
+    }  else if (init && steadyState) {
         init = false;
         const time1 = performance.now();
         stop = true;
-        console.log("It took " + (time1 - time0) + " milliseconds to run 5000 steps");     
+        console.log("It took " + (time1 - time0) + " milliseconds to reach steady state.");
+        animate();
+        init = false;
+        steadyState = false;
+        time0 = 0;
     }
+
+    steadyState = checkForSteadyState();
+
+
+
 };
+
+const checkForSteadyState = () => { 
+    const { currentConcentrationData, nextConcentrationData } = dataState;
+    const threshold = 0.000004; // Define a threshold for steady state
+    let steadyState = false;
+    let errorAccumulated = 0;
+    for (let i = 0; i < currentConcentrationData.length; i++) {
+        const diff = Math.abs(currentConcentrationData[i] - nextConcentrationData[i]);
+        errorAccumulated += diff;
+    }
+    errorAccumulated /= currentConcentrationData.length;
+    steadyState = errorAccumulated < threshold;
+    return steadyState;
+}
 
 /**
  * Animation loop
  */
-let init = false
+let init = false;
+let steadyState = false;
 let time0 = 0;  
 const animate = () => {
     if (!init){
