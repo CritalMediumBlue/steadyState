@@ -38,19 +38,21 @@ export const initArrays = () => {
 
     dataState.currentConcentrationData = new Float32Array(gridSize);
     dataState.nextConcentrationData = new Float32Array(gridSize);
+    dataState.currentConcentrationData.fill(10);
+    dataState.nextConcentrationData.fill(10);
     dataState.colors = new Float32Array(gridSize * 3);
     
     // Initialize sources and sinks
     const sources = new Float32Array(gridSize);
     const sinks = new Float32Array(gridSize);
 
-    const numberOfSinksAndSources = 3; 
-    const smoothFactor = 0.0; // Adjust this value to control the smoothness of the sources and sinks
+    const numberOfSinksAndSources = 10; 
+    const smoothFactor = 1; // Adjust this value to control the smoothness of the sources and sinks
     
     const sourcePositions = new Set();
     const sinkPositions = new Set();
 
-    const boundaryMargin = 10;
+    const boundaryMargin = 1;
     
     for (let i = 0; i < numberOfSinksAndSources; i++) {
         let pos, row, col;
@@ -61,7 +63,7 @@ export const initArrays = () => {
             pos = row * GRID.WIDTH + col;
         } while(sourcePositions.has(pos));
         sourcePositions.add(pos);
-        sources[pos] = 1;
+        sources[pos] = 0.95; // has to be slightly less than the sinks
     
         // Generate a valid sink position
         do {
@@ -106,6 +108,21 @@ export const initArrays = () => {
         "FTCS"
     );
     dataState.sinks = result2.currentConcentrationData;
+
+    //set boundaries of the sources and sinks to 0
+    for (let i = 0; i < GRID.WIDTH; i++) {
+        dataState.sources[i] = 0;
+        dataState.sinks[i] = 0;
+        dataState.sources[(GRID.HEIGHT - 1) * GRID.WIDTH + i] = 0;
+        dataState.sinks[(GRID.HEIGHT - 1) * GRID.WIDTH + i] = 0;
+    }
+    for (let i = 0; i < GRID.HEIGHT; i++) {
+        dataState.sources[i * GRID.WIDTH] = 0;
+        dataState.sinks[i * GRID.WIDTH] = 0;
+        dataState.sources[i * GRID.WIDTH + (GRID.WIDTH - 1)] = 0;
+        dataState.sinks[i * GRID.WIDTH + (GRID.WIDTH - 1)] = 0;
+    }
+        
 
     console.log(dataState.sinks.reduce((acc, value) => acc + value, 0)); 
     console.log(dataState.sources.reduce((acc, value) => acc + value, 0));

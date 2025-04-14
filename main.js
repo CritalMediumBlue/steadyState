@@ -7,7 +7,7 @@ import { diffusion } from './diffusion.js';
 let stop = false;
 const DIFFUSION_RATE = 100; // micrometers squared per seconds
 const deltaX = 1; // micrometers
-const deltaT = 0.95* (Math.pow(deltaX, 2)) / (4 * DIFFUSION_RATE); // seconds
+const deltaT = 1.0* (Math.pow(deltaX, 2)) / (4 * DIFFUSION_RATE); // seconds
 const numberOfStepsPerSecond = Math.round(1 / deltaT); // steps per second
 
 console.log("numberOfStepsPerSecond", numberOfStepsPerSecond);
@@ -89,20 +89,33 @@ const updateScene = () => {
     stop = updateSurfaceMesh();
     updateLoggsOverlay();
 
-    if(animationState.currentTimeStep < 5000) {
+    if(animationState.currentTimeStep < 300) {
         if (constants.parallelization) {
             requestDiffusionCalculation();  //uncomment this line to use the worker instead of the main thread
         } else {
             [dataState.nextConcentrationData, dataState.currentConcentrationData] = diffusion();
         }
         
-    } 
+    }  else if (init) {
+        init = false;
+        const time1 = performance.now();
+        stop = true;
+        console.log("It took " + (time1 - time0) + " milliseconds to run 5000 steps");     
+    }
 };
 
 /**
  * Animation loop
  */
+let init = false
+let time0 = 0;  
 const animate = () => {
+    if (!init){
+        time0 = performance.now();
+        init = true;
+    }
+    
+
     animationState.animationFrameId = requestAnimationFrame(animate);
     // Render every frame
     sceneState.renderer.render(sceneState.scene, sceneState.camera);
@@ -113,9 +126,9 @@ const animate = () => {
         console.log("Simulation stopped due to NaN values.");
     }
 };
-
 // Setup scene and start animation when the page loads
 window.addEventListener('load', () => {
+
     setupNewScene();
     animate();
 });

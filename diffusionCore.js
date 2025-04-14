@@ -41,18 +41,23 @@ export function diffusionCore(currentData, nextData, sources, sinks, constants,D
 
 const FTCS = ( currentData, nextData, sources, sinks, constants,DIFFUSION_RATE,deltaX,deltaT) => {
     const { WIDTH, HEIGHT } = constants.GRID;
-    const numberOfSteps = Math.round(1 / deltaT); // steps per second
+    const numberOfStepsPerSecond = Math.round(1 / deltaT); // steps per second
+
     // Create copies of input arrays to avoid modifying originals if needed
     let current = new Float32Array(currentData);
     let next = new Float32Array(nextData);
     const DiffusionParam = DIFFUSION_RATE * deltaT / (deltaX ** 2);
 
+    const scaleSinksAndSources = 800/numberOfStepsPerSecond;
 
-    for (let step = 0; step < numberOfSteps; step++) {
+
+    for (let step = 0; step < numberOfStepsPerSecond; step++) {
         // Diffusion calculation with source/sink terms
         for (let y = 1; y < HEIGHT - 1; y++) {
             for (let x = 1; x < WIDTH - 1; x++) {
                 const idx = y * WIDTH + x;
+
+                const michaelisMenten = current[idx] / (0.5+ current[idx]);
 
                 // Diffusion term (5-point stencil)
                 const diffusionTerm = DiffusionParam * (
@@ -64,7 +69,12 @@ const FTCS = ( currentData, nextData, sources, sinks, constants,DIFFUSION_RATE,d
                 );
                
                 // Update concentration
-                next[idx] = current[idx] + diffusionTerm + 0.8*sources[idx] - sinks[idx]*(current[idx])/(1+current[idx]);
+                next[idx] = current[idx] + diffusionTerm + (sources[idx] - sinks[idx]*michaelisMenten) * scaleSinksAndSources;
+                
+                if (next[idx] < 0) {
+                    console.warn("Concentration went negative " + next[idx]);
+                    next[idx] = 0; // Ensure concentration doesn't go negative
+                }
             }
         }
 
@@ -81,6 +91,8 @@ const FTCS = ( currentData, nextData, sources, sinks, constants,DIFFUSION_RATE,d
             next[i * WIDTH + WIDTH - 1] = next[i * WIDTH + WIDTH - 2];
         }
 
+        
+
         // Switch current and next concentration data
         [current, next] = [next, current];
     }
@@ -92,145 +104,139 @@ const FTCS = ( currentData, nextData, sources, sinks, constants,DIFFUSION_RATE,d
 };
 
 
-const ADI = (currentConcentrationData, nextConcentrationData,sources, sinks, constants, DIFFUSION_RATE, deltaX, deltaT) => {
+const ADI = (currentConcentrationData, nextConcentrationData, sources, sinks, constants, DIFFUSION_RATE, deltaX, deltaT) => {
 
     const { WIDTH, HEIGHT } = constants.GRID;
-    const numberOfSteps = Math.round(1 / deltaT); // steps per second
+    const scaleSinksAndSources = 800;
     
-    // Temporary arrays for the ADI method
-    const a = new Float32Array(Math.max(WIDTH, HEIGHT)); // Lower diagonal
-    const b = new Float32Array(Math.max(WIDTH, HEIGHT)); // Main diagonal
-    const c = new Float32Array(Math.max(WIDTH, HEIGHT)); // Upper diagonal
-    const d = new Float32Array(Math.max(WIDTH, HEIGHT)); // Right-hand side
-    const x = new Float32Array(Math.max(WIDTH, HEIGHT)); // Solution vector
-    
-    // Intermediate array to store results after the first half-step
-    const intermediateData = new Float32Array(WIDTH * HEIGHT);
-    
-   
-    const speedUpFactor = 500;
-  
-    const timeStep = deltaT*speedUpFactor
+    // Define the simulation time step used by the ADI method
+    const timeStep = 1/15; // seconds
+    const numberOfStepsPerSecond = Math.round(1 / timeStep); // e.g., 4 steps per second
 
+    const alpha = DIFFUSION_RATE * timeStep / (2 * deltaX * deltaX); // non-dimensional diffusion coefficient
 
-    const alpha = DIFFUSION_RATE*timeStep/(2*deltaX*deltaX); // non-dimensional diffusion coefficient
+    // Repeat the ADI method until one second is simulated
+    for (let step = 0; step < numberOfStepsPerSecond; step++) {
 
-    a.fill(-alpha);
-    b.fill(1 + 2*alpha);
-    c.fill(-alpha);
+        // Reinitialize temporary arrays for the ADI method for the current time step
+        const a = new Float32Array(Math.max(WIDTH, HEIGHT)); // Lower diagonal
+        const b = new Float32Array(Math.max(WIDTH, HEIGHT)); // Main diagonal
+        const c = new Float32Array(Math.max(WIDTH, HEIGHT)); // Upper diagonal
+        const d = new Float32Array(Math.max(WIDTH, HEIGHT)); // Right-hand side
+        const x = new Float32Array(Math.max(WIDTH, HEIGHT)); // Solution vector
+        const intermediateData = new Float32Array(WIDTH * HEIGHT);
     
-     
-    // First half-step: implicit in x-direction, explicit in y-direction
-    for (let j = 1; j < HEIGHT - 1; j++) {
-        // Set up the tridiagonal system for this row
-        for (let i = 1; i < WIDTH - 1; i++) {
-           
-            
-            // Calculate the right-hand side using explicit method in y-direction
-            const idx = j * WIDTH + i;
-            const term_y = currentConcentrationData[idx]+alpha * (
-                currentConcentrationData[(j-1) * WIDTH + i] - 
-                2 * currentConcentrationData[idx] + 
-                currentConcentrationData[(j+1) * WIDTH + i]
-            );
-            
-            d[i] =  term_y + (speedUpFactor/2)*(sources[idx]  -(sinks[idx])) 
-            
-        }
-        
-        // Apply boundary conditions for the x-direction
-        // Left boundary (reflective)
-        b[1] = b[1] + a[1]; // Absorb the coefficient for the ghost point
-        a[1] = 0;
-        
-        // Right boundary (reflective)
-        b[WIDTH-2] = b[WIDTH-2] + c[WIDTH-2]; // Absorb the coefficient for the ghost point
-        c[WIDTH-2] = 0;
-        
-        // Solve the tridiagonal system for this row
-        thomasAlgorithm(a, b, c, d, x, WIDTH-1);
-        
-        // Store the results in the intermediate array
-        for (let i = 1; i < WIDTH - 1; i++) {
-            intermediateData[j * WIDTH + i] = x[i];
-        }
-    }
+        // Set up coefficients for the tridiagonal system
+        a.fill(-alpha);
+        b.fill(1 + 2 * alpha);
+        c.fill(-alpha);
     
-    // Apply boundary conditions to the intermediate data
-    // Top and bottom boundaries (copy from adjacent interior points)
-    for (let i = 0; i < WIDTH; i++) {
-        intermediateData[i] = intermediateData[WIDTH + i]; // Top boundary
-        intermediateData[(HEIGHT-1) * WIDTH + i] = intermediateData[(HEIGHT-2) * WIDTH + i]; // Bottom boundary
-    }
-    
-    // Left and right boundaries (copy from adjacent interior points)
-    for (let j = 0; j < HEIGHT; j++) {
-        intermediateData[j * WIDTH] = intermediateData[j * WIDTH + 1]; // Left boundary
-        intermediateData[j * WIDTH + WIDTH - 1] = intermediateData[j * WIDTH + WIDTH - 2]; // Right boundary
-    }
-    
-
-    a.fill(-alpha);
-    b.fill(1 + 2*alpha);
-    c.fill(-alpha);
-    
-    // Second half-step: explicit in x-direction, implicit in y-direction
-    for (let i = 1; i < WIDTH - 1; i++) {
-        // Set up the tridiagonal system for this column
+        // First half-step: implicit in x-direction, explicit in y-direction
         for (let j = 1; j < HEIGHT - 1; j++) {
-           
-            
-            // Calculate the right-hand side using explicit method in x-direction
-            const idx = j * WIDTH + i;
-            const term_x = intermediateData[idx] +alpha * (
-                intermediateData[j * WIDTH + (i-1)] - 
-                2 * intermediateData[idx] + 
-                intermediateData[j * WIDTH + (i+1)]
-            );
-            
-            d[j] =term_x + (speedUpFactor/2)*(sources[idx]  -(sinks[idx]))
-        
+            // Set up the tridiagonal system for this row
+            for (let i = 1; i < WIDTH - 1; i++) {
+                const idx = j * WIDTH + i;
+                const michaelisMenten = currentConcentrationData[idx] / (0.5 + currentConcentrationData[idx]);
+                // Calculate the right-hand side using explicit method in y-direction
+                const term_y = currentConcentrationData[idx] + alpha * (
+                    currentConcentrationData[(j - 1) * WIDTH + i] -
+                    2 * currentConcentrationData[idx] +
+                    currentConcentrationData[(j + 1) * WIDTH + i]
+                ) + (timeStep * scaleSinksAndSources * (sources[idx] - sinks[idx] * michaelisMenten)) / 2;
+    
+                d[i] = term_y;
+            }
+    
+            // Apply boundary conditions for the x-direction
+            // Left boundary (reflective)
+            b[1] = b[1] + a[1]; // Absorb the coefficient for the ghost point
+            a[1] = 0;
+            // Right boundary (reflective)
+            b[WIDTH - 2] = b[WIDTH - 2] + c[WIDTH - 2]; // Absorb the coefficient for the ghost point
+            c[WIDTH - 2] = 0;
+    
+            // Solve the tridiagonal system for this row
+            thomasAlgorithm(a, b, c, d, x, WIDTH - 1);
+    
+            // Store the results in the intermediate array
+            for (let i = 1; i < WIDTH - 1; i++) {
+                if (x[i] < 0) {
+                    console.warn("Concentration went negative " + x[i]);
+                    x[i] = 0; // Ensure concentration doesn't go negative
+                }
+                intermediateData[j * WIDTH + i] = x[i];
+            }
         }
-        
-        // Apply boundary conditions for the y-direction
-        // Top boundary (reflective)
-        b[1] = b[1] + a[1]; // Absorb the coefficient for the ghost point
-        a[1] = 0;
-        
-        // Bottom boundary (reflective)
-        b[HEIGHT-2] = b[HEIGHT-2] + c[HEIGHT-2]; // Absorb the coefficient for the ghost point
-        c[HEIGHT-2] = 0;
-        
-        // Solve the tridiagonal system for this column
-        thomasAlgorithm(a, b, c, d, x, HEIGHT-1);
-        
-        // Store the results in the next concentration data array
-        for (let j = 1; j < HEIGHT - 1; j++) {
-            nextConcentrationData[j * WIDTH + i] = x[j];
+    
+        // Apply boundary conditions to the intermediate data
+        // Top and bottom boundaries (copy from adjacent interior points)
+        for (let i = 0; i < WIDTH; i++) {
+            intermediateData[i] = intermediateData[WIDTH + i]; // Top boundary
+            intermediateData[(HEIGHT - 1) * WIDTH + i] = intermediateData[(HEIGHT - 2) * WIDTH + i]; // Bottom boundary
         }
+    
+        // Left and right boundaries (copy from adjacent interior points)
+        for (let j = 0; j < HEIGHT; j++) {
+            intermediateData[j * WIDTH] = intermediateData[j * WIDTH + 1]; // Left boundary
+            intermediateData[j * WIDTH + WIDTH - 1] = intermediateData[j * WIDTH + WIDTH - 2]; // Right boundary
+        }
+    
+        // Second half-step: explicit in x-direction, implicit in y-direction
+        for (let i = 1; i < WIDTH - 1; i++) {
+            // Set up the tridiagonal system for this column
+            for (let j = 1; j < HEIGHT - 1; j++) {
+                const idx = j * WIDTH + i;
+                const michaelisMenten = intermediateData[idx] / (0.5 + intermediateData[idx]);
+                // Calculate the right-hand side using explicit method in x-direction
+                const term_x = intermediateData[idx] + alpha * (
+                    intermediateData[j * WIDTH + (i - 1)] -
+                    2 * intermediateData[idx] +
+                    intermediateData[j * WIDTH + (i + 1)]
+                ) + (timeStep * scaleSinksAndSources * (sources[idx] - sinks[idx] * michaelisMenten)) / 2;
+    
+                d[j] = term_x;
+            }
+    
+            // Apply boundary conditions for the y-direction
+            // Top boundary (reflective)
+            b[1] = b[1] + a[1]; // Absorb the coefficient for the ghost point
+            a[1] = 0;
+            // Bottom boundary (reflective)
+            b[HEIGHT - 2] = b[HEIGHT - 2] + c[HEIGHT - 2]; // Absorb the coefficient for the ghost point
+            c[HEIGHT - 2] = 0;
+    
+            // Solve the tridiagonal system for this column
+            thomasAlgorithm(a, b, c, d, x, HEIGHT - 1);
+    
+            // Store the results in the next concentration data array
+            for (let j = 1; j < HEIGHT - 1; j++) {
+                if (x[i] < 0) {
+                    console.warn("Concentration went negative " + x[i]);
+                    x[i] = 0; // Ensure concentration doesn't go negative
+                }
+                nextConcentrationData[j * WIDTH + i] = x[j];
+            }
+        }
+    
+        // Apply boundary conditions to the final data
+        // Top and bottom boundaries (copy from adjacent interior points)
+        for (let i = 0; i < WIDTH; i++) {
+            nextConcentrationData[i] = nextConcentrationData[WIDTH + i]; // Top boundary
+            nextConcentrationData[(HEIGHT - 1) * WIDTH + i] = nextConcentrationData[(HEIGHT - 2) * WIDTH + i]; // Bottom boundary
+        }
+    
+        // Left and right boundaries (copy from adjacent interior points)
+        for (let j = 0; j < HEIGHT; j++) {
+            nextConcentrationData[j * WIDTH] = nextConcentrationData[j * WIDTH + 1]; // Left boundary
+            nextConcentrationData[j * WIDTH + WIDTH - 1] = nextConcentrationData[j * WIDTH + WIDTH - 2]; // Right boundary
+        }
+    
+        // Update the current concentration data with the new values for the next time step
+        [currentConcentrationData, nextConcentrationData] = [nextConcentrationData, currentConcentrationData];
     }
     
-    // Apply boundary conditions to the final data
-    // Top and bottom boundaries (copy from adjacent interior points)
-    for (let i = 0; i < WIDTH; i++) {
-        nextConcentrationData[i] = nextConcentrationData[WIDTH + i]; // Top boundary
-        nextConcentrationData[(HEIGHT-1) * WIDTH + i] = nextConcentrationData[(HEIGHT-2) * WIDTH + i]; // Bottom boundary
-    }
-    
-    // Left and right boundaries (copy from adjacent interior points)
-    for (let j = 0; j < HEIGHT; j++) {
-        nextConcentrationData[j * WIDTH] = nextConcentrationData[j * WIDTH + 1]; // Left boundary
-        nextConcentrationData[j * WIDTH + WIDTH - 1] = nextConcentrationData[j * WIDTH + WIDTH - 2]; // Right boundary
-    }
-    
-   
-    
-    // Update the current concentration data with the new values
-    [currentConcentrationData, nextConcentrationData] = [nextConcentrationData, currentConcentrationData];
-
     return {
         currentConcentrationData,
         nextConcentrationData
     };
 }
-
