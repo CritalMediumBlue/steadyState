@@ -1,7 +1,6 @@
 /**
  * Core diffusion simulation function
  * @param {Float32Array} currentData - Current concentration data
- * @param {Float32Array} nextData - Next concentration data buffer
  * @param {Float32Array} sources - Source terms
  * @param {Float32Array} sinks - Sink terms
  * @param {Object} constants - Simulation constants
@@ -14,7 +13,7 @@
 
 import {thomasAlgorithm} from "./utils.js";
 
-export function diffusionCore(currentData, nextData, sources, sinks, constants,DIFFUSION_RATE,deltaX,deltaT,method ) {
+export function diffusionCore(currentData, sources, sinks, constants,DIFFUSION_RATE,deltaX,deltaT,method ) {
     
     let chosenFunction;
         switch(method){
@@ -22,13 +21,12 @@ export function diffusionCore(currentData, nextData, sources, sinks, constants,D
         case "ADI":chosenFunction = ADI;break;  
     }
 
-    return chosenFunction(currentData, nextData, sources, sinks, constants,DIFFUSION_RATE,deltaX,deltaT);
+    return chosenFunction(currentData, sources, sinks, constants,DIFFUSION_RATE,deltaX,deltaT);
 }
 
 /**
  * Forward-Time Central-Space (FTCS) method for solving the diffusion equation
  * @param {Float32Array} currentData - Current concentration data
- * @param {Float32Array} nextData - Next concentration data buffer
  * @param {Float32Array} sources - Source terms
  * @param {Float32Array} sinks - Sink terms
  * @param {Object} constants - Simulation constants
@@ -39,13 +37,13 @@ export function diffusionCore(currentData, nextData, sources, sinks, constants,D
  * @returns {Object} Updated concentration data
  */
 
-const FTCS = ( currentData, nextData, sources, sinks, constants,DIFFUSION_RATE,deltaX,deltaT) => {
+const FTCS = ( currentData, sources, sinks, constants,DIFFUSION_RATE,deltaX,deltaT) => {
     const { WIDTH, HEIGHT } = constants.GRID;
     const numberOfStepsPerSecond = Math.round(1 / deltaT); // steps per second
 
     // Create copies of input arrays to avoid modifying originals if needed
     let current = new Float32Array(currentData);
-    let next = new Float32Array(nextData);
+    let next = new Float32Array(currentData);
     const DiffusionParam = DIFFUSION_RATE * deltaT / (deltaX ** 2);
 
     const scaleSinksAndSources = 800/numberOfStepsPerSecond; //800 units of concentration per second
@@ -96,23 +94,25 @@ const FTCS = ( currentData, nextData, sources, sinks, constants,DIFFUSION_RATE,d
         
 
         // Switch current and next concentration data
-        [current, next] = [next, current];
+        current=next;
     }
 
     return {
         currentConcentrationData: current,
-        nextConcentrationData: next
     };
 };
 
 
-const ADI = (currentConcentrationData, nextConcentrationData, sources, sinks, constants, DIFFUSION_RATE, deltaX, deltaT) => {
+const ADI = (currentConcentrationData, sources, sinks, constants, DIFFUSION_RATE, deltaX, deltaT) => {
 
     const { WIDTH, HEIGHT } = constants.GRID;
     const scaleSinksAndSources = 800; // 800 units of concentration per second
+
+    // Create a new array for the next concentration data
+    const nextConcentrationData = new Float32Array(currentConcentrationData.length);
     
     // Define the simulation time step used by the ADI method
-    const timeStep = 1/10; // seconds
+    const timeStep = 1/2; // seconds
     const numberOfStepsPerSecond = Math.round(1 / timeStep); // 
 
     const alpha = DIFFUSION_RATE * timeStep / (2 * deltaX * deltaX); // non-dimensional diffusion coefficient
@@ -132,6 +132,15 @@ const ADI = (currentConcentrationData, nextConcentrationData, sources, sinks, co
         a.fill(-alpha);
         b.fill(1 + 2 * alpha);
         c.fill(-alpha);
+
+        // Apply boundary conditions for the x-direction
+        // Left boundary (reflective)
+        b[1] = b[1] + a[1]; // Absorb the coefficient for the ghost point
+        a[1] = 0;
+            
+        // Right boundary (reflective)
+        b[WIDTH - 2] = b[WIDTH - 2] + c[WIDTH - 2]; // Absorb the coefficient for the ghost point
+        c[WIDTH - 2] = 0;
     
         // First half-step: implicit in x-direction, explicit in y-direction
         for (let j = 1; j < HEIGHT - 1; j++) {
@@ -149,14 +158,7 @@ const ADI = (currentConcentrationData, nextConcentrationData, sources, sinks, co
                 d[i] = term_y;
             }
             
-            // Apply boundary conditions for the x-direction
-            // Left boundary (reflective)
-            b[1] = b[1] + a[1]; // Absorb the coefficient for the ghost point
-            a[1] = 0;
             
-            // Right boundary (reflective)
-            b[WIDTH - 2] = b[WIDTH - 2] + c[WIDTH - 2]; // Absorb the coefficient for the ghost point
-            c[WIDTH - 2] = 0;
     
             // Solve the tridiagonal system for this row
             thomasAlgorithm(a, b, c, d, x, WIDTH - 1);
@@ -183,6 +185,14 @@ const ADI = (currentConcentrationData, nextConcentrationData, sources, sinks, co
             intermediateData[j * WIDTH] = intermediateData[j * WIDTH + 1]; // Left boundary
             intermediateData[j * WIDTH + WIDTH - 1] = intermediateData[j * WIDTH + WIDTH - 2]; // Right boundary
         }
+
+            // Apply boundary conditions for the y-direction
+            // Top boundary (reflective)
+            b[1] = b[1] + a[1]; // Absorb the coefficient for the ghost point
+            a[1] = 0;
+            // Bottom boundary (reflective)
+            b[HEIGHT - 2] = b[HEIGHT - 2] + c[HEIGHT - 2]; // Absorb the coefficient for the ghost point
+            c[HEIGHT - 2] = 0;
     
         // Second half-step: explicit in x-direction, implicit in y-direction
         for (let i = 1; i < WIDTH - 1; i++) {
@@ -200,15 +210,6 @@ const ADI = (currentConcentrationData, nextConcentrationData, sources, sinks, co
                 d[j] = term_x;
             }
     
-            // Apply boundary conditions for the y-direction
-            // Top boundary (reflective)
-            b[1] = b[1] + a[1]; // Absorb the coefficient for the ghost point
-            a[1] = 0;
-            // Bottom boundary (reflective)
-            b[HEIGHT - 2] = b[HEIGHT - 2] + c[HEIGHT - 2]; // Absorb the coefficient for the ghost point
-            c[HEIGHT - 2] = 0;
-
-            
     
             // Solve the tridiagonal system for this column
             thomasAlgorithm(a, b, c, d, x, HEIGHT - 1);
@@ -221,6 +222,8 @@ const ADI = (currentConcentrationData, nextConcentrationData, sources, sinks, co
                 }
                 nextConcentrationData[j * WIDTH + i] = x[j];
             }
+
+            
         }
     
         // Apply boundary conditions to the final data
@@ -237,11 +240,11 @@ const ADI = (currentConcentrationData, nextConcentrationData, sources, sinks, co
         }
     
         // Update the current concentration data with the new values for the next time step
-        [currentConcentrationData, nextConcentrationData] = [nextConcentrationData, currentConcentrationData];
+        currentConcentrationData = nextConcentrationData;
     }
     
     return {
-        currentConcentrationData,
-        nextConcentrationData
+        currentConcentrationData: currentConcentrationData
+
     };
 }

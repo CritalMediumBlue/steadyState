@@ -4,7 +4,6 @@ import { diffusionCore } from './diffusionCore.js';
 self.onmessage = function(e) {
     const { 
         currentConcentrationData, 
-        nextConcentrationData, 
         sources, 
         sinks,
         constants,
@@ -17,7 +16,6 @@ self.onmessage = function(e) {
     // Perform diffusion calculation
     const result = diffusionCore(
         currentConcentrationData, 
-        nextConcentrationData, 
         sources, 
         sinks, 
         constants,

@@ -9,7 +9,6 @@ import { diffusionCore } from './diffusionCore.js';
 export const diffusion = ( ) => {
     const { 
         currentConcentrationData, 
-        nextConcentrationData, 
         sources, 
         sinks 
     } = dataState;
@@ -23,7 +22,6 @@ export const diffusion = ( ) => {
 
     const result = diffusionCore(
         currentConcentrationData, 
-        nextConcentrationData, 
         sources, 
         sinks, 
         constants,
@@ -35,8 +33,7 @@ export const diffusion = ( ) => {
 
     // Update data state
     dataState.currentConcentrationData = result.currentConcentrationData;
-    dataState.nextConcentrationData = result.nextConcentrationData;
 
     animationState.currentTimeStep++;
-    return [result.nextConcentrationData, result.currentConcentrationData];
+    return [result.currentConcentrationData];
 };

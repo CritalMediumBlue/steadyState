@@ -86,7 +86,6 @@ export const initArrays = () => {
         sources,
         emptyArray,
         emptyArray,
-        emptyArray,
         constants,
         smoothFactor,
         constants.deltaX,
@@ -98,7 +97,6 @@ export const initArrays = () => {
     // diffuse sinks
     const result2 = diffusionCore(
         sinks,
-        emptyArray,
         emptyArray,
         emptyArray,
         constants,

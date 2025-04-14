@@ -1,10 +1,15 @@
 import { setupNewScene } from './sceneManager.js';
 import { updateSurfaceMesh } from './meshUpdater.js';
-import { updateLoggsOverlay } from './overlayManager.js';
+import { updateLoggsOverlay, setOverlayData } from './overlayManager.js';
 import { sceneState, animationState, dataState, constants } from './state.js';
 import { diffusion } from './diffusion.js';
+import { initArrays } from './state.js';
 
-let stop = false;
+export let stop = false;
+let runCount = 0;
+let steadyStateTimes = [];
+let maxRuns = Infinity; // Default to infinite runs
+let autoRestart = true; // Flag to control automatic restarting
 const DIFFUSION_RATE = 100; // micrometers squared per seconds
 const deltaX = 1; // micrometers
 const deltaT = 1.0* (Math.pow(deltaX, 2)) / (4 * DIFFUSION_RATE); // seconds
@@ -20,7 +25,7 @@ constants.numberOfStepsPerSecond = numberOfStepsPerSecond;
 
 //constants.method = "FTCS"; 
 constants.method = "ADI"; 
-constants.parallelization = false;
+constants.parallelization = true;
 
 
 // Create Web Worker for diffusion calculations
@@ -38,7 +43,6 @@ const requestDiffusionCalculation = () => {
     isWorkerBusy = true;
     const { 
         currentConcentrationData, 
-        nextConcentrationData, 
         sources, 
         sinks
          
@@ -52,7 +56,6 @@ const requestDiffusionCalculation = () => {
 
     diffusionWorker.postMessage({
         currentConcentrationData,
-        nextConcentrationData,
         sources,
         sinks,
         constants,
@@ -64,13 +67,13 @@ const requestDiffusionCalculation = () => {
 
 // Set up worker message handler
 diffusionWorker.onmessage = function(e) {
-    const { currentConcentrationData, nextConcentrationData } = e.data;
+    const { currentConcentrationData } = e.data;
     
     // Update data state with worker results
     dataState.currentConcentrationData = currentConcentrationData;
-    dataState.nextConcentrationData = nextConcentrationData;
     
     animationState.currentTimeStep++;
+    steadyState = checkForSteadyState();
     
     isWorkerBusy = false;
 };
@@ -87,38 +90,91 @@ diffusionWorker.onerror = function(error) {
 const updateScene = () => {
     // Update surface mesh
     stop = updateSurfaceMesh();
+    
+    // Update overlay with current run data
+    setOverlayData(runCount, steadyStateTimes, maxRuns, autoRestart);
     updateLoggsOverlay();
-
-
 
     if(!steadyState && !stop) {
         if (constants.parallelization) {
             requestDiffusionCalculation();  //uncomment this line to use the worker instead of the main thread
+            
         } else {
-            [dataState.nextConcentrationData, dataState.currentConcentrationData] = diffusion();
+            [dataState.currentConcentrationData] = diffusion();
+            //steadyState = checkForSteadyState();
         }
         
-    }  else if (init && steadyState) {
+    } else if (init && steadyState) {
         init = false;
         const time1 = performance.now();
-        stop = true;
-        console.log("It took " + (time1 - time0) + " milliseconds to reach steady state.");
-        animate();
-        init = false;
-        steadyState = false;
-        time0 = 0;
+        const elapsedTime = time1 - time0;
+        steadyStateTimes.push(elapsedTime);
+        
+        console.log(`Run ${runCount + 1}: It took ${elapsedTime} milliseconds to reach steady state.`);
+        
+        // Increment run counter
+        runCount++;
+        
+        // Reset simulation for next run
+        resetSimulation();
     }
 
-    steadyState = checkForSteadyState();
-
-
-
+    
 };
+
+/**
+ * Reset the simulation for a new run
+ */
+const resetSimulation = () => {
+    // Check if we've reached the maximum number of runs
+    if (runCount >= maxRuns || !autoRestart) {
+        console.log(`Completed ${runCount} runs. Stopping automatic simulation.`);
+        // Don't restart, just stop
+        stop = true;
+        return;
+    }
+    
+    // Reset animation state
+    animationState.currentTimeStep = 0;
+    
+    // Reinitialize arrays with new random sources and sinks
+    initArrays();
+    
+    // Reset flags
+    init = true;
+    steadyState = false;
+    stop = false;
+    
+    // Record start time for new run
+    time0 = performance.now();
+    
+    console.log(`Starting run ${runCount + 1}...`);
+};
+
+/**
+ * Set the maximum number of runs
+ * @param {number} max - Maximum number of runs to perform
+ */
+export const setMaxRuns = (max) => {
+    maxRuns = max;
+    console.log(`Maximum runs set to: ${max}`);
+};
+
+/**
+ * Toggle automatic restarting
+ * @param {boolean} enabled - Whether automatic restarting is enabled
+ */
+export const setAutoRestart = (enabled) => {
+    autoRestart = enabled;
+    console.log(`Automatic restarting ${enabled ? 'enabled' : 'disabled'}`);
+};
+
+
 
 const checkForSteadyState = () => { 
     const { currentConcentrationData, nextConcentrationData } = dataState;
     const threshold = 0.000004; // Define a threshold for steady state
-    let steadyState = false;
+    steadyState = false;
     let errorAccumulated = 0;
     for (let i = 0; i < currentConcentrationData.length; i++) {
         const diff = Math.abs(currentConcentrationData[i] - nextConcentrationData[i]);
@@ -154,7 +210,48 @@ const animate = () => {
 };
 // Setup scene and start animation when the page loads
 window.addEventListener('load', () => {
-
+    console.log("Starting automatic simulation runs...");
+    runCount = 0;
+    steadyStateTimes = [];
+    
+    // Add keyboard controls for the simulation
+    document.addEventListener('keydown', (event) => {
+        switch(event.key) {
+            case 'r': // Reset and restart simulation
+                console.log("Manual restart triggered");
+                runCount = 0;
+                steadyStateTimes = [];
+                setupNewScene();
+                init = false; // Force reinitialization
+                animate();
+                break;
+            case 's': // Toggle automatic restarting
+                autoRestart = !autoRestart;
+                console.log(`Automatic restarting ${autoRestart ? 'enabled' : 'disabled'}`);
+                // Update overlay immediately to show the change
+                setOverlayData(runCount, steadyStateTimes, maxRuns, autoRestart);
+                updateLoggsOverlay();
+                break;
+            case '1': case '2': case '3': case '4': case '5':
+            case '6': case '7': case '8': case '9':
+                // Set max runs (1-9)
+                maxRuns = parseInt(event.key);
+                console.log(`Maximum runs set to: ${maxRuns}`);
+                // Update overlay immediately to show the change
+                setOverlayData(runCount, steadyStateTimes, maxRuns, autoRestart);
+                updateLoggsOverlay();
+                break;
+            case '0':
+                // Infinite runs
+                maxRuns = Infinity;
+                console.log("Maximum runs set to: Infinite");
+                // Update overlay immediately to show the change
+                setOverlayData(runCount, steadyStateTimes, maxRuns, autoRestart);
+                updateLoggsOverlay();
+                break;
+        }
+    });
+    
     setupNewScene();
     animate();
 });
