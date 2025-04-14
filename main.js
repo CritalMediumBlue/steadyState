@@ -89,7 +89,7 @@ const updateScene = () => {
     stop = updateSurfaceMesh();
     updateLoggsOverlay();
 
-    if(animationState.currentTimeStep < 300) {
+    if(animationState.currentTimeStep < 1000) {
         if (constants.parallelization) {
             requestDiffusionCalculation();  //uncomment this line to use the worker instead of the main thread
         } else {

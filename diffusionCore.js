@@ -81,14 +81,16 @@ const FTCS = ( currentData, nextData, sources, sinks, constants,DIFFUSION_RATE,d
         // Reflective boundary conditions
         for (let i = 0; i < WIDTH; i++) {
             // Top and bottom boundaries
+            
             next[i] = next[WIDTH + i];
             next[(HEIGHT - 1) * WIDTH + i] = next[(HEIGHT - 2) * WIDTH + i];
         }
 
         for (let i = 0; i < HEIGHT; i++) {
             // Left and right boundaries
-            next[i * WIDTH] = next[i * WIDTH + 1];
-            next[i * WIDTH + WIDTH - 1] = next[i * WIDTH + WIDTH - 2];
+            const leftIdx = i * WIDTH;
+            next[leftIdx] = next[leftIdx + 1];
+            next[leftIdx + WIDTH - 1] = next[leftIdx+ WIDTH - 2];
         }
 
         
@@ -110,8 +112,8 @@ const ADI = (currentConcentrationData, nextConcentrationData, sources, sinks, co
     const scaleSinksAndSources = 800;
     
     // Define the simulation time step used by the ADI method
-    const timeStep = 1/15; // seconds
-    const numberOfStepsPerSecond = Math.round(1 / timeStep); // e.g., 4 steps per second
+    const timeStep = 1/10; // seconds
+    const numberOfStepsPerSecond = Math.round(1 / timeStep); // 
 
     const alpha = DIFFUSION_RATE * timeStep / (2 * deltaX * deltaX); // non-dimensional diffusion coefficient
 

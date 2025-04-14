@@ -23,6 +23,6 @@ export const thomasAlgorithm = (a, b, c, d, x, n) => {
     for (let i = n - 2; i >= 0; i--) {
         x[i] = d_prime[i] - c_prime[i] * x[i+1];
     }
-    
+
    
 };
