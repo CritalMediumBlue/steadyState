@@ -6,9 +6,8 @@ import { diffusionCore } from './diffusionCore.js';
  * @param {string} [method='FTCS'] - Numerical method to use for diffusion
  * @returns {[Float32Array, Float32Array]} Updated concentration data
  */
-export const diffusion = ( ) => {
+export const diffusion = (concentration) => {
     const { 
-        currentConcentrationData, 
         sources, 
         sinks 
     } = dataState;
@@ -21,7 +20,7 @@ export const diffusion = ( ) => {
     } = constants;
 
     const result = diffusionCore(
-        currentConcentrationData, 
+        concentration, 
         sources, 
         sinks, 
         constants,
@@ -30,9 +29,6 @@ export const diffusion = ( ) => {
         deltaT,
         method
     );
-
-    // Update data state
-    dataState.currentConcentrationData = result.currentConcentrationData;
 
     animationState.currentTimeStep++;
     return [result.currentConcentrationData];

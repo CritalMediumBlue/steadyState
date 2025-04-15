@@ -36,7 +36,7 @@ export function diffusionCore(currentData, sources, sinks, constants,DIFFUSION_R
  * @param {number} deltaT - Time step size
  * @returns {Object} Updated concentration data
  */
-const scaleSinksAndSources = 300
+const scaleSinksAndSources = 200
 const FTCS = ( currentData, sources, sinks, constants,DIFFUSION_RATE,deltaX,deltaT) => {
     const { WIDTH, HEIGHT } = constants.GRID;
     const numberOfStepsPerSecond = Math.round(1 / deltaT); // steps per second
@@ -107,19 +107,23 @@ const ADI = (currentConcentrationData, sources, sinks, constants, DIFFUSION_RATE
     const nextConcentrationData = new Float32Array(currentConcentrationData.length);
     
     // Define the simulation time step used by the ADI method
-    const timeStep = 1
+    const timeStep = 1/2
     const numberOfStepsPerSecond = Math.round(1 / timeStep); // 
 
     const alpha = DIFFUSION_RATE * timeStep / (2 * deltaX * deltaX); // non-dimensional diffusion coefficient
    // Reinitialize temporary arrays for the ADI method for the current time step
-   const a = new Float32Array(Math.max(WIDTH, HEIGHT)); // Lower diagonal
-   const b = new Float32Array(Math.max(WIDTH, HEIGHT)); // Main diagonal
-   const c = new Float32Array(Math.max(WIDTH, HEIGHT)); // Upper diagonal
-   const d = new Float32Array(Math.max(WIDTH, HEIGHT)); // Right-hand side
-   const x = new Float32Array(Math.max(WIDTH, HEIGHT)); // Solution vector
+   const diagLength = Math.max(WIDTH, HEIGHT);
+
+   const a = new Float32Array(diagLength); // Lower diagonal
+   const b = new Float32Array(diagLength); // Main diagonal
+   const c = new Float32Array(diagLength); // Upper diagonal
+   const d = new Float32Array(diagLength); // Right-hand side
+   const x = new Float32Array(diagLength); // Solution vector
    const intermediateData = new Float32Array(WIDTH * HEIGHT);
 
-
+   d.fill(0);
+   x.fill(0);
+   intermediateData.fill(0);
 
     // Repeat the ADI method until one second is simulated
     for (let step = 0; step < numberOfStepsPerSecond; step++) {
@@ -130,9 +134,7 @@ const ADI = (currentConcentrationData, sources, sinks, constants, DIFFUSION_RATE
         a.fill(-alpha);
         b.fill(1 + 2 * alpha);
         c.fill(-alpha);
-        d.fill(0);
-        x.fill(0);
-        intermediateData.fill(0);
+        
 
         
 
@@ -251,57 +253,3 @@ const ADI = (currentConcentrationData, sources, sinks, constants, DIFFUSION_RATE
 
     };
 }
-
-/* 
-const runFTCS_GPU=(currentData2D, sources2D, sinks2D, constants, DIFFUSION_RATE, deltaX, deltaT) =>{
-    const { WIDTH, HEIGHT } = constants.GRID;
-    const numberOfSteps = Math.round(1 / deltaT);
-    const DiffusionParam = DIFFUSION_RATE * deltaT / (deltaX ** 2);
-
-    // Convert flat arrays to 2D arrays if needed or adapt the kernel accordingly.
-    // For this example we assume currentData2D, sources2D, sinks2D are 2D arrays.
-    let current = currentData2D;
-
-    for (let step = 0; step < numberOfSteps; step++) {
-        current = ftcsKernel(current, sources2D, sinks2D, DiffusionParam, scaleSinksAndSources, WIDTH, HEIGHT, numberOfSteps).toArray();
-
-        // Implement reflective boundary conditions if not handled in kernel.
-        // For instance: copy rows/cols of adjacent interior points to boundaries.
-        // ...
-    }
-
-    return {
-        currentConcentrationData: current,
-    };
-}
-
-const gpu = new GPU();
-
-// Create a GPU kernel for one simulation step
-const ftcsKernel = gpu.createKernel(function(current, sources, sinks, DiffusionParam, scaleSinksAndSources, WIDTH, HEIGHT, numberOfSteps) {
-    const x = this.thread.x;
-    const y = this.thread.y;
-    
-    // Only compute interior points; boundary points will be handled after the kernel
-    if(x === 0 || y === 0 || x === WIDTH - 1 || y === HEIGHT - 1) {
-        return current[y][x]; // Return input value at the boundaries
-    }
-    
-    const currentVal = current[y][x];
-    const michaelisMenten = currentVal / (0.5 + currentVal);
-    
-    // 5-point stencil (neighbors)
-    const diffusionTerm = DiffusionParam * (
-        current[y - 1][x] + 
-        current[y + 1][x] + 
-        current[y][x - 1] + 
-        current[y][x + 1] - 
-        4 * currentVal
-    );
-    
-    // Note: for simplicity, applying the source/sink directly here. In a full step you'd average over steps.
-    let result = currentVal + diffusionTerm + (sources[y][x] - sinks[y][x] * michaelisMenten) * scaleSinksAndSources / numberOfSteps;
-    
-    // Ensure non-negative concentration
-    return result < 0 ? 0 : result;
-})  */

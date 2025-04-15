@@ -33,8 +33,7 @@ export const updateLoggsOverlay = () => {
     const seconds = Math.floor((timeInMinutes * 60) % 60);
     
     if (overlay) {
-        let overlayText = `Run: ${runCount + 1}${maxRuns !== Infinity ? ' / ' + maxRuns : ''}
-Auto-Restart: ${autoRestart ? 'ON' : 'OFF'}
+        let overlayText = `Run: ${runCount + 1}${' / ' + maxRuns }
 Step: ${animationState.currentTimeStep}
 Time: ${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}
 Method: ${constants.method}
@@ -46,7 +45,7 @@ Parallelization: ${constants.parallelization}`;
             // Show the last 5 runs or fewer if less than 5 runs have completed
             const startIdx = Math.max(0, steadyStateTimes.length - 5);
             for (let i = startIdx; i < steadyStateTimes.length; i++) {
-                overlayText += `\nRun ${i + 1}: ${steadyStateTimes[i]}ms, ${steadyStateSteps[i]} steps`;
+                overlayText += `\nRun ${i + 1}: ${steadyStateTimes[i].toFixed(1)}ms, ${steadyStateSteps[i]} steps`;
             }
            
             
@@ -54,8 +53,12 @@ Parallelization: ${constants.parallelization}`;
             if (steadyStateTimes.length > 1) {
                 const avgTime = steadyStateTimes.reduce((sum, time) => sum + time, 0) / steadyStateTimes.length;
                 const avgSteps = steadyStateSteps.reduce((sum, step) => sum + step, 0) / steadyStateSteps.length;
-                overlayText += `\n\nAverage Time: ${avgTime.toFixed(2)}`;
-                overlayText += ` and steps: ${avgSteps.toFixed(2)}`;
+                const standardDeviationTime = Math.sqrt(steadyStateTimes.reduce((sum, time) => sum + Math.pow(time - avgTime, 2), 0) / steadyStateTimes.length);
+                const standardDeviationSteps = Math.sqrt(steadyStateSteps.reduce((sum, step) => sum + Math.pow(step - avgSteps, 2), 0) / steadyStateSteps.length);
+                overlayText += `\n\nStatistics:`;
+                overlayText += `\n\nAverage time: ${avgTime.toFixed(2)}ms ± ${standardDeviationTime.toFixed(2)}ms`;
+                overlayText += `\n\nAverage steps: ${avgSteps.toFixed(2)} ± ${standardDeviationSteps.toFixed(2)}`;
+               
             }
            
         }

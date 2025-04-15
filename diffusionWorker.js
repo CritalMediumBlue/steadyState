@@ -3,7 +3,7 @@ import { diffusionCore } from './diffusionCore.js';
 // Message handler for worker
 self.onmessage = function(e) {
     const { 
-        currentConcentrationData, 
+        concentration, 
         sources, 
         sinks,
         constants,
@@ -15,7 +15,7 @@ self.onmessage = function(e) {
     
     // Perform diffusion calculation
     const result = diffusionCore(
-        currentConcentrationData, 
+        concentration, 
         sources, 
         sinks, 
         constants,

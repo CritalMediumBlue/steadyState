@@ -5,7 +5,8 @@ export const sceneState = {
     scene: null,
     camera: null,
     renderer: null,
-    surfaceMesh: null
+    surfaceMesh: null,
+    surfaceMesh2: null,
 };
 
 export const animationState = {
@@ -17,6 +18,8 @@ export const animationState = {
 export const dataState = {
     currentConcentrationData: null,
     lastConcentrationData: null,
+    currentConcentrationData2: null,
+    lastConcentrationData2: null,
     colors: null,
     sources: null,
     sinks: null,
@@ -38,15 +41,17 @@ export const initArrays = () => {
 
     dataState.currentConcentrationData = new Float32Array(gridSize);
     dataState.lastConcentrationData = new Float32Array(gridSize);
-    dataState.currentConcentrationData.fill(15);
-    dataState.lastConcentrationData.fill(15);
+    dataState.currentConcentrationData2 = new Float32Array(gridSize);
+    dataState.lastConcentrationData2 = new Float32Array(gridSize);
+    dataState.currentConcentrationData.fill(12.5);
+    dataState.currentConcentrationData2.fill(12.5);
     dataState.colors = new Float32Array(gridSize * 3);
     
     // Initialize sources and sinks
     const sources = new Float32Array(gridSize);
     const sinks = new Float32Array(gridSize);
 
-    const numberOfSinksAndSources = 20; 
+    const numberOfSinksAndSources = 10; 
     const smoothFactor = 0.5; // Adjust this value to control the smoothness of the sources and sinks
     
     const sourcePositions = new Set();
