@@ -13,12 +13,11 @@ export function setupScene() {
     const renderer = createRenderer();
     const controls = createControls(camera, renderer);
     const surfaceMesh = createMesh(scene, camera, renderer, controls);
-    const surfaceMesh2 = createMesh(scene, camera, renderer, controls);
      //add helper axes
      const axesHelper = new THREE.AxesHelper(10);
      scene.add(axesHelper);
 
-    return { scene, camera, renderer, surfaceMesh, surfaceMesh2};
+    return { scene, camera, renderer, surfaceMesh};
 }
 
 function createMesh(scene) {

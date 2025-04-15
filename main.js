@@ -25,7 +25,7 @@ constants.deltaT = deltaT;
 constants.numberOfStepsPerSecond = numberOfStepsPerSecond;
 
 //constants.method = "FTCS"; 
-//constants.method = "FTCS"; 
+constants.method = "ADI"; 
 constants.parallelization = true;
 
 
@@ -38,7 +38,7 @@ let isWorkerBusy = false;
 /**
  * Request diffusion calculation from Web Worker
  */
-const requestDiffusionCalculation = (concentration1, concentration2) => {
+const requestDiffusionCalculation = (concentration1) => {
     if (isWorkerBusy) return;
 
     isWorkerBusy = true;
@@ -57,30 +57,26 @@ const requestDiffusionCalculation = (concentration1, concentration2) => {
 
     diffusionWorker.postMessage({
         concentration1,
-        concentration2,
         sources,
         sinks,
         constants,
         DIFFUSION_RATE,
         deltaX,
         deltaT,
-        method1: "FTCS",
-        method2: "ADI"
+        method: constants.method,
     });
 };
 
 // Set up worker message handler
 diffusionWorker.onmessage = function(e) {
-    const { currentConcentrationData, currentConcentrationData2 } = e.data;
+    const { currentConcentrationData } = e.data;
     
      
         dataState.currentConcentrationData = currentConcentrationData;
-        dataState.currentConcentrationData2 = currentConcentrationData2;
      
       
     animationState.currentTimeStep++;
     steadyState1 = checkForSteadyState(dataState.lastConcentrationData, dataState.currentConcentrationData);
-    steadyState2 = checkForSteadyState(dataState.lastConcentrationData2, dataState.currentConcentrationData2);
     
     isWorkerBusy = false;
 };
@@ -97,31 +93,26 @@ diffusionWorker.onerror = function(error) {
 const updateScene = () => {
     // Update surface mesh
     stop = updateSurfaceMesh(sceneState.surfaceMesh, dataState.currentConcentrationData);
-    stop = updateSurfaceMesh(sceneState.surfaceMesh2, dataState.currentConcentrationData2);
 
     
     // Update overlay with current run data
     setOverlayData(runCount, steadyStateTimes,steadyStateSteps, maxRuns, autoRestart);
     updateLoggsOverlay();
 
-    if(!steadyState1 && !stop && !steadyState2) {
+    if(!steadyState1 && !stop ) {
         if (constants.parallelization) {
             dataState.lastConcentrationData = dataState.currentConcentrationData
-            dataState.lastConcentrationData2 = dataState.currentConcentrationData2;
-            requestDiffusionCalculation(dataState.currentConcentrationData, dataState.currentConcentrationData2);  //uncomment this line to use the worker instead of the main thread
+            requestDiffusionCalculation(dataState.currentConcentrationData); 
             
         } else {
             dataState.lastConcentrationData = dataState.currentConcentrationData;
-            dataState.lastConcentrationData2 = dataState.currentConcentrationData2;
 
 
-            [dataState.currentConcentrationData] = diffusion(dataState.currentConcentrationData,"FTCS");
-            [dataState.currentConcentrationData2] = diffusion(dataState.currentConcentrationData2,"ADI");
+            [dataState.currentConcentrationData] = diffusion(dataState.currentConcentrationData,constants.method);
             steadyState1 = checkForSteadyState(dataState.currentConcentrationData, dataState.lastConcentrationData);
-            steadyState2 = checkForSteadyState(dataState.currentConcentrationData2, dataState.lastConcentrationData2);
         }
         
-    } else if (init && steadyState1 && steadyState2) {
+    } else if (init && steadyState1) {
         init = false;
         const time1 = performance.now();
         const elapsedTime = time1 - time0;
@@ -163,7 +154,6 @@ const resetSimulation = () => {
     // Reset flags
     init = true;
     steadyState1 = false;
-    steadyState2 = false;
     stop = false;
     
     // Record start time for new run
@@ -193,14 +183,15 @@ export const setAutoRestart = (enabled) => {
 
 
 const checkForSteadyState = (previous, next, steadyState) => {
-    const threshold = 0.00001; // Define a threshold for steady state
+    const threshold = 0.0005; // Define a threshold for steady state
+
     steadyState = false;
     let errorAccumulated = 0;
     for (let i = 0; i < previous.length; i++) {
-        const diff = Math.abs(previous[i] - next[i]);
+        const diff = Math.pow((previous[i] - next[i]), 2);
         errorAccumulated += diff;
     }
-    errorAccumulated /= next.length;
+    errorAccumulated ;
     steadyState = errorAccumulated < threshold;
     //console.log("errorAccumulated", errorAccumulated);
     return steadyState;
@@ -211,7 +202,6 @@ const checkForSteadyState = (previous, next, steadyState) => {
  */
 let init = false;
 let steadyState1 = false;
-let steadyState2 = false;
 let time0 = 0;  
 const animate = () => {
     if (!init){

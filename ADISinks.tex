@@ -8,6 +8,32 @@
 \usepackage{algpseudocode}
 \usepackage{tikz}
 \usepackage{empheq}
+\usepackage{xcolor}  % Load xcolor first
+\usepackage{listings}
+
+\lstdefinelanguage{JavaScript}{
+    keywords={break, case, catch, continue, debugger, default, delete, do, else, finally,
+              for, function, if, in, instanceof, new, return, switch, this, throw, try,
+              typeof, var, void, while, with, const, let},
+    sensitive=true,
+    comment=[l]{//},
+    morecomment=[s]{/*}{*/},
+    morestring=[b]",
+    morestring=[b]'
+}
+
+\lstset{
+    language=JavaScript,
+    basicstyle=\small\ttfamily,
+    numbers=left,
+    numberstyle=\tiny,
+    stepnumber=1,
+    numbersep=5pt,
+    keywordstyle=\color{blue},
+    commentstyle=\color{green!50!black},
+    stringstyle=\color{red},
+}
+
 
 
 % Theme configuration
@@ -526,5 +552,223 @@ $\boxed{\small
     }
 \end{frame}
 
+\begin{frame}{Implementing Neumann Boundary Conditions}
+    \vspace{-0.5cm}
+    \begin{columns}
+        \begin{column}{0.5\textwidth}
+            \small
+            Neumann boundary conditions specify that the derivative of the concentration at the boundary is zero:
+            \begin{align*}
+                \left. \frac{\partial u}{\partial x} \right|_{x=0} = 0 \quad \text{and} \quad \left. \frac{\partial u}{\partial x} \right|_{x=L} = 0
+            \end{align*}
+            
+            In the discretized form, this means:
+            \begin{align*}
+                \frac{u_{1,j} - u_{0,j}}{\Delta x} = 0 \quad \Rightarrow \quad u_{0,j} = u_{1,j}\\
+                \frac{u_{N,j} - u_{N-1,j}}{\Delta x} = 0 \quad \Rightarrow \quad u_{N,j} = u_{N-1,j}
+            \end{align*}
+            
+            These conditions state that the ghost points ($u_{0,j}$ and $u_{N,j}$) have the same value as their adjacent interior points.
+        \end{column}
+        
+        \begin{column}{0.5\textwidth}
+            \begin{tikzpicture}[scale=0.6]
+                % Grid
+                \draw[step=1cm,gray!30,very thin] (0,0) grid (5,3);
+                
+                % Axes
+                \draw[->] (-0.5,0) -- (5.5,0) node[right] {$x$};
+                \draw[->] (0,-0.5) -- (0,3.5) node[above] {$y$};
+                
+                % Grid points
+                \foreach \x in {0,...,5}
+                    \foreach \y in {0,...,3}
+                        \fill (\x,\y) circle (0.08);
+                
+                % Highlight ghost points and their adjacent interior points
+                \fill[red] (0,1) circle (0.12);
+                \fill[red] (1,1) circle (0.12);
+                \draw[red, thick, <->] (0,1) -- (1,1);
+                
+                \fill[red] (5,1) circle (0.12);
+                \fill[red] (4,1) circle (0.12);
+                \draw[red, thick, <->] (5,1) -- (4,1);
+                
+                % Labels
+                \node[below] at (0,0) {$0$};
+                \node[below] at (1,0) {$1$};
+                \node[below] at (4,0) {$N-1$};
+                \node[below] at (5,0) {$N$};
+                
+                \node[left] at (0,1) {$j$};
+                
+                % Ghost point labels
+                \node[above, red] at (0,1.2) {$u_{0,j}$};
+                \node[above, red] at (1,1.2) {$u_{1,j}$};
+                \node[above, red] at (4,1.2) {$u_{N-1,j}$};
+                \node[above, red] at (5,1.2) {$u_{N,j}$};
+                
+                % Boundary labels
+                \node[below] at (0,-0.3) {Ghost};
+                \node[below] at (1,-0.3) {Interior};
+                \node[below] at (5,-0.3) {Ghost};
+            \end{tikzpicture}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+\begin{frame}{Implementing Neumann Boundary Conditions in the Tridiagonal System}
+    \vspace{-0.5cm}
+    
+    For the first half-step (x-direction), we need to modify the tridiagonal system to incorporate the boundary conditions.
+    
+    \begin{columns}
+        \begin{column}{0.5\textwidth}
+            \small
+            For the left boundary ($i=1$), the original equation is:
+            \begin{align*}
+                -\alpha u_{0,j}^{k+\frac{1}{2}} + (1+2\alpha)u_{1,j}^{k+\frac{1}{2}} - \alpha u_{2,j}^{k+\frac{1}{2}} = \text{RHS}_{1,j}
+            \end{align*}
+            
+            With the Neumann condition $u_{0,j} = u_{1,j}$, we substitute:
+            \begin{align*}
+                -\alpha u_{1,j}^{k+\frac{1}{2}} + (1+2\alpha)u_{1,j}^{k+\frac{1}{2}} - \alpha u_{2,j}^{k+\frac{1}{2}} = \text{RHS}_{1,j}
+            \end{align*}
+            
+            Simplifying:
+            \begin{align*}
+                (1+\alpha)u_{1,j}^{k+\frac{1}{2}} - \alpha u_{2,j}^{k+\frac{1}{2}} = \text{RHS}_{1,j}
+            \end{align*}
+        \end{column}
+        
+        \begin{column}{0.5\textwidth}
+            \small
+            For the right boundary ($i=N-1$), the original equation is:
+            \begin{align*}
+                -\alpha u_{N-2,j}^{k+\frac{1}{2}} + (1+2\alpha)u_{N-1,j}^{k+\frac{1}{2}} - \alpha u_{N,j}^{k+\frac{1}{2}} = \text{RHS}_{N-1,j}
+            \end{align*}
+            
+            With the Neumann condition $u_{N,j} = u_{N-1,j}$, we substitute:
+            \begin{align*}
+                -\alpha u_{N-2,j}^{k+\frac{1}{2}} + (1+2\alpha)u_{N-1,j}^{k+\frac{1}{2}} - \alpha u_{N-1,j}^{k+\frac{1}{2}} = \text{RHS}_{N-1,j}
+            \end{align*}
+            
+            Simplifying:
+            \begin{align*}
+                -\alpha u_{N-2,j}^{k+\frac{1}{2}} + (1+\alpha)u_{N-1,j}^{k+\frac{1}{2}} = \text{RHS}_{N-1,j}
+            \end{align*}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+\begin{frame}[fragile]{Implementation in the Code}
+    \vspace{-0.5cm}
+    
+    In the JavaScript implementation, the boundary conditions are applied as follows:
+    
+    \begin{columns}
+        \begin{column}{0.5\textwidth}
+            
+            \begin{lstlisting}[language=JavaScript]
+// Apply boundary conditions for the x-direction
+// Left boundary (reflective)
+mainDiagonal[1] += lowerDiagonal[1]; 
+lowerDiagonal[1] = 0;
+        
+// Right boundary (reflective)
+mainDiagonal[WIDTH-2] += upperDiagonal[WIDTH-2]; 
+upperDiagonal[WIDTH-2] = 0;
+            \end{lstlisting}
+            
+            This code modifies the tridiagonal system to incorporate the Neumann boundary conditions.
+        \end{column}
+        
+        \begin{column}{0.5\textwidth}
+            
+            \textbf{Why mainDiagonal[1] and not mainDiagonal[0]?}
+            
+            The key insight is that the computational domain is indexed from 1 to WIDTH-2, with indices 0 and WIDTH-1 being ghost points.
+            
+            \begin{tikzpicture}[scale=0.6]
+                % Grid
+                \draw[step=1cm,gray!30,very thin] (0,0) grid (5,1);
+                
+                % Points
+                \foreach \x in {0,...,5}
+                    \fill (\x,0) circle (0.08);
+                
+                % Labels
+                \node[below] at (0,0) {$0$};
+                \node[below] at (1,0) {$1$};
+                \node[below] at (2,0) {$2$};
+                \node[below] at (3,0) {$3$};
+                \node[below] at (4,0) {$WIDTH-2$};
+                \node[below] at (5,0) {$WIDTH-1$};
+                
+                % Boundary indicators
+                \draw[red, thick] (0,-0.3) -- (0,0.3);
+                \draw[red, thick] (5,-0.3) -- (5,0.3);
+                
+                % Domain indicators
+                \draw[blue, thick] (1,-0.2) -- (4,-0.2);
+                \node[blue, below] at (2.5,-0.4) {Computational Domain};
+                
+                % Ghost point labels
+                \node[red, above] at (0,0.2) {Ghost};
+                \node[red, above] at (5,0.2) {Ghost};
+            \end{tikzpicture}
+            
+            The tridiagonal system is set up for the interior points (1 to WIDTH-2), so the first equation corresponds to index 1, not 0.
+        \end{column}
+    \end{columns}
+\end{frame}
+
+\begin{frame}{Detailed Explanation of Boundary Condition Implementation}
+    \vspace{-0.5cm}
+    
+    \begin{columns}
+        \begin{column}{0.5\textwidth}
+            \small
+            For the left boundary, the original tridiagonal system has:
+            \begin{align*}
+                \text{lowerDiagonal[1]} &= -\alpha\\
+                \text{mainDiagonal[1]} &= 1 + 2\alpha\\
+                \text{upperDiagonal[1]} &= -\alpha
+            \end{align*}
+            
+            The code modifies this to:
+            \begin{align*}
+                \text{mainDiagonal[1]} &+= \text{lowerDiagonal[1]}\\
+                &= (1 + 2\alpha) + (-\alpha)\\
+                &= 1 + \alpha
+            \end{align*}
+            
+            And sets lowerDiagonal[1] = 0, effectively removing the dependency on the ghost point.
+        \end{column}
+        
+        \begin{column}{0.5\textwidth}
+            \small
+            Similarly, for the right boundary:
+            \begin{align*}
+                \text{lowerDiagonal[WIDTH-2]} &= -\alpha\\
+                \text{mainDiagonal[WIDTH-2]} &= 1 + 2\alpha\\
+                \text{upperDiagonal[WIDTH-2]} &= -\alpha
+            \end{align*}
+            
+            The code modifies this to:
+            \begin{align*}
+                \text{mainDiagonal[WIDTH-2]} &+= \text{upperDiagonal[WIDTH-2]}\\
+                &= (1 + 2\alpha) + (-\alpha)\\
+                &= 1 + \alpha
+            \end{align*}
+            
+            And sets upperDiagonal[WIDTH-2] = 0, removing the dependency on the ghost point.
+        \end{column}
+    \end{columns}
+    
+    \vspace{0.3cm}
+    
+    This implementation correctly enforces the Neumann boundary conditions by modifying the tridiagonal system coefficients to account for the equality between ghost points and their adjacent interior points.
+\end{frame}
 
 \end{document}

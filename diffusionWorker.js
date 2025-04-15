@@ -4,16 +4,13 @@ import { diffusionCore } from './diffusionCore.js';
 self.onmessage = function(e) {
     const { 
         concentration1,
-        concentration2, 
         sources, 
         sinks,
         constants,
         DIFFUSION_RATE,
         deltaX,
         deltaT,
-        method1,
-        method2
-         
+        method,         
     } = e.data;
     
     // Perform diffusion calculation
@@ -25,24 +22,15 @@ self.onmessage = function(e) {
         DIFFUSION_RATE,
         deltaX,
         deltaT,
-        method1
+        method
     );
 
-    const result2 = diffusionCore(
-        concentration2, 
-        sources, 
-        sinks, 
-        constants,
-        DIFFUSION_RATE,
-        deltaX,
-        deltaT,
-        method2
-    );
+   
 
     
     // Send result back to main thread
     self.postMessage({
         currentConcentrationData: result1.currentConcentrationData,
-        currentConcentrationData2: result2.currentConcentrationData,
+        
     });
 };

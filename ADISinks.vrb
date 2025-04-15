@@ -1,0 +1,60 @@
+\frametitle{Implementation in the Code}
+\vspace{-0.5cm}
+
+    In the JavaScript implementation, the boundary conditions are applied as follows:
+
+    \begin{columns}
+        \begin{column}{0.5\textwidth}
+
+            \begin{lstlisting}[language=JavaScript]
+// Apply boundary conditions for the x-direction
+// Left boundary (reflective)
+mainDiagonal[1] += lowerDiagonal[1];
+lowerDiagonal[1] = 0;
+
+// Right boundary (reflective)
+mainDiagonal[WIDTH-2] += upperDiagonal[WIDTH-2];
+upperDiagonal[WIDTH-2] = 0;
+            \end{lstlisting}
+
+            This code modifies the tridiagonal system to incorporate the Neumann boundary conditions.
+        \end{column}
+
+        \begin{column}{0.5\textwidth}
+
+            \textbf{Why mainDiagonal[1] and not mainDiagonal[0]?}
+
+            The key insight is that the computational domain is indexed from 1 to WIDTH-2, with indices 0 and WIDTH-1 being ghost points.
+
+            \begin{tikzpicture}[scale=0.6]
+                % Grid
+                \draw[step=1cm,gray!30,very thin] (0,0) grid (5,1);
+
+                % Points
+                \foreach \x in {0,...,5}
+                    \fill (\x,0) circle (0.08);
+
+                % Labels
+                \node[below] at (0,0) {$0$};
+                \node[below] at (1,0) {$1$};
+                \node[below] at (2,0) {$2$};
+                \node[below] at (3,0) {$3$};
+                \node[below] at (4,0) {$WIDTH-2$};
+                \node[below] at (5,0) {$WIDTH-1$};
+
+                % Boundary indicators
+                \draw[red, thick] (0,-0.3) -- (0,0.3);
+                \draw[red, thick] (5,-0.3) -- (5,0.3);
+
+                % Domain indicators
+                \draw[blue, thick] (1,-0.2) -- (4,-0.2);
+                \node[blue, below] at (2.5,-0.4) {Computational Domain};
+
+                % Ghost point labels
+                \node[red, above] at (0,0.2) {Ghost};
+                \node[red, above] at (5,0.2) {Ghost};
+            \end{tikzpicture}
+
+            The tridiagonal system is set up for the interior points (1 to WIDTH-2), so the first equation corresponds to index 1, not 0.
+        \end{column}
+    \end{columns}
