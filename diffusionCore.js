@@ -1,255 +1,360 @@
 /**
- * Core diffusion simulation function
- * @param {Float32Array} currentData - Current concentration data
- * @param {Float32Array} sources - Source terms
- * @param {Float32Array} sinks - Sink terms
- * @param {Object} constants - Simulation constants
- * @param {number} numberOfSteps - Number of simulation steps 
- * @param {number} DIFFUSION_RATE - Diffusion rate
- * @param {number} deltaX - Spatial step size
- * @param {number} deltaT - Time step size
- * @returns {Object} Updated concentration data
+ * diffusionCore.js
+ * 
+ * This module provides numerical solvers for the diffusion equation using two methods:
+ * 1. FTCS (Forward Time Centered Space) - An explicit method
+ * 2. ADI (Alternating Direction Implicit) - An implicit method with higher stability
+ * 
+ * The diffusion equation models how substances spread through a medium over time:
+ * ∂C/∂t = D * ∇²C + S - R
+ * where:
+ * - C is concentration
+ * - D is diffusion coefficient
+ * - S is source term
+ * - R is sink/reaction term
  */
 
-import {thomasAlgorithm} from "./utils.js";
+import { thomasAlgorithm } from "./utils.js";
 
-export function diffusionCore(currentData, sources, sinks, constants,DIFFUSION_RATE,deltaX,deltaT,method ) {
-    
-    let chosenFunction;
-        switch(method){
-        case "FTCS":chosenFunction = FTCS;break;
-        case "ADI":chosenFunction = ADI;break;  
+// ============================================================================
+// CONSTANTS
+// ============================================================================
+
+/**
+ * Scaling factor for source and sink terms to adjust their influence on the system.
+ * Higher values make sources/sinks have stronger effects on concentration changes.
+ * @constant {number}
+ */
+const SCALE_SINKS_AND_SOURCES = 200;
+
+/**
+ * Half-saturation constant for Michaelis-Menten kinetics used in sink terms.
+ * Represents the concentration at which the reaction rate is half of its maximum.
+ * @constant {number}
+ */
+const HALF_SATURATION_CONSTANT = 0.5;
+
+// ============================================================================
+// HELPER FUNCTIONS
+// ============================================================================
+
+/**
+ * Applies reflective boundary conditions to the concentration data.
+ * This ensures no-flux boundaries (zero gradient) at the edges of the domain.
+ * 
+ * @param {Float32Array} data - Concentration data to apply boundary conditions to
+ * @param {number} width - Width of the grid
+ * @param {number} height - Height of the grid
+ * @returns {void} - Modifies the data array in-place
+ */
+function applyReflectiveBoundaryConditions(data, width, height) {
+    // Top and bottom boundaries
+    for (let i = 0; i < width; i++) {
+        data[i] = data[width + i]; // Top boundary copies from first interior row
+        data[(height - 1) * width + i] = data[(height - 2) * width + i]; // Bottom boundary copies from last interior row
     }
 
-    return chosenFunction(currentData, sources, sinks, constants,DIFFUSION_RATE,deltaX,deltaT);
+    // Left and right boundaries
+    for (let j = 0; j < height; j++) {
+        const rowStart = j * width;
+        data[rowStart] = data[rowStart + 1]; // Left boundary copies from first interior column
+        data[rowStart + width - 1] = data[rowStart + width - 2]; // Right boundary copies from last interior column
+    }
 }
 
 /**
- * Forward-Time Central-Space (FTCS) method for solving the diffusion equation
- * @param {Float32Array} currentData - Current concentration data
- * @param {Float32Array} sources - Source terms
- * @param {Float32Array} sinks - Sink terms
+ * Ensures concentration values don't go negative, which would be physically impossible.
+ * 
+ * @param {Float32Array} data - Concentration data to check and correct
+ * @returns {void} - Modifies the data array in-place
+ */
+function enforceNonNegativeConcentration(data) {
+    for (let i = 0; i < data.length; i++) {
+        if (data[i] < 0) {
+            console.warn("Concentration went negative: " + data[i]);
+            data[i] = 0; // Ensure concentration doesn't go negative
+        }
+    }
+}
+
+/**
+ * Calculates the Michaelis-Menten kinetics term for a given concentration.
+ * This models how reaction rates depend on concentration, approaching a maximum rate
+ * as concentration increases.
+ * 
+ * @param {number} concentration - Current concentration value
+ * @returns {number} - Michaelis-Menten term (between 0 and 1)
+ */
+function calculateMichaelisMentenTerm(concentration) {
+    return concentration / (HALF_SATURATION_CONSTANT + concentration);
+}
+
+// ============================================================================
+// MAIN DIFFUSION METHODS
+// ============================================================================
+
+/**
+ * Forward-Time Central-Space (FTCS) method for solving the diffusion equation.
+ * This is an explicit method that is simple to implement but has stability constraints.
+ * 
+ * @param {Float32Array} concentrationData - Current concentration data
+ * @param {Float32Array} sources - Source terms (adding concentration)
+ * @param {Float32Array} sinks - Sink terms (removing concentration)
  * @param {Object} constants - Simulation constants
- * @param {number} numberOfSteps - Number of simulation steps
- * @param {number} DIFFUSION_RATE - Diffusion rate
+ * @param {number} diffusionRate - Diffusion coefficient (D)
  * @param {number} deltaX - Spatial step size
  * @param {number} deltaT - Time step size
  * @returns {Object} Updated concentration data
  */
-const scaleSinksAndSources = 200
-const FTCS = ( currentData, sources, sinks, constants,DIFFUSION_RATE,deltaX,deltaT) => {
+function solveFTCS(concentrationData, sources, sinks, constants, diffusionRate, deltaX, deltaT) {
     const { WIDTH, HEIGHT } = constants.GRID;
-    const numberOfStepsPerSecond = Math.round(1 / deltaT); // steps per second
-
-    // Create copies of input arrays to avoid modifying originals if needed
-    let current = new Float32Array(currentData);
-    let next = new Float32Array(currentData);
-    const DiffusionParam = DIFFUSION_RATE * deltaT / (deltaX ** 2); 
-
+    const numberOfStepsPerSecond = Math.round(1 / deltaT);
+    
+    // Create copies of input arrays to avoid modifying originals
+    let current = new Float32Array(concentrationData);
+    let next = new Float32Array(concentrationData);
+    
+    // Pre-calculate the diffusion parameter for efficiency
+    // This represents (D*Δt)/(Δx²) in the finite difference approximation
+    const diffusionParameter = diffusionRate * deltaT / (deltaX * deltaX);
+    
+    // Main time-stepping loop
     for (let step = 0; step < numberOfStepsPerSecond; step++) {
-        // Diffusion calculation with source/sink terms
+        // Interior points calculation (excluding boundaries)
         for (let y = 1; y < HEIGHT - 1; y++) {
             const rowStart = y * WIDTH;
             for (let x = 1; x < WIDTH - 1; x++) {
                 const idx = rowStart + x;
-
-                const michaelisMenten = current[idx] / (0.5+ current[idx]);
-
-                // Diffusion term (5-point stencil)
-                const diffusionTerm = DiffusionParam * (
-                    current[(y - 1) * WIDTH + x] +
-                    current[(y + 1) * WIDTH + x] +
-                    current[rowStart + (x - 1)] +
-                    current[rowStart + (x + 1)] -
-                    4 * current[idx]
-                );
-               
-                // Update concentration
-                next[idx] = current[idx] + diffusionTerm + (sources[idx] - sinks[idx]*michaelisMenten) * scaleSinksAndSources/numberOfStepsPerSecond;
                 
-                if (next[idx] < 0) {
-                    console.warn("Concentration went negative " + next[idx]);
-                    next[idx] = 0; // Ensure concentration doesn't go negative
-                }
+                // Calculate Michaelis-Menten kinetics for sink term
+                const michaelisMentenTerm = calculateMichaelisMentenTerm(current[idx]);
+                
+                // Calculate diffusion using 5-point stencil (central differences in space)
+                // This approximates the Laplacian (∇²C)
+                const diffusionTerm = diffusionParameter * (
+                    current[(y - 1) * WIDTH + x] +  // North neighbor
+                    current[(y + 1) * WIDTH + x] +  // South neighbor
+                    current[rowStart + (x - 1)] +   // West neighbor
+                    current[rowStart + (x + 1)] -   // East neighbor
+                    4 * current[idx]                // Center point (multiplied by 4)
+                );
+                
+                // Update concentration: C_new = C_old + diffusion + (sources - sinks)
+                next[idx] = current[idx] + 
+                           diffusionTerm + 
+                           (sources[idx] - sinks[idx] * michaelisMentenTerm) * 
+                           SCALE_SINKS_AND_SOURCES / numberOfStepsPerSecond;
             }
         }
-
-        // Reflective boundary conditions
-        for (let i = 0; i < WIDTH; i++) {
-            // Top and bottom boundaries
-            
-            next[i] = next[WIDTH + i];
-            next[(HEIGHT - 1) * WIDTH + i] = next[(HEIGHT - 2) * WIDTH + i];
-        }
-
-        for (let i = 0; i < HEIGHT; i++) {
-            // Left and right boundaries
-            const leftIdx = i * WIDTH;
-            next[leftIdx] = next[leftIdx + 1];
-            next[leftIdx + WIDTH - 1] = next[leftIdx+ WIDTH - 2];
-        }
-
-        // Switch current and next concentration data
-        current=next;
+        
+        // Apply boundary conditions and ensure non-negative concentrations
+        applyReflectiveBoundaryConditions(next, WIDTH, HEIGHT);
+        enforceNonNegativeConcentration(next);
+        
+        // Update current data for next time step
+        // Note: We're reusing the same array reference to avoid unnecessary allocations
+        [current, next] = [next, current];
     }
-
+    
     return {
-        currentConcentrationData: current,
+        currentConcentrationData: current
     };
-};
+}
 
-
-const ADI = (currentConcentrationData, sources, sinks, constants, DIFFUSION_RATE, deltaX) => {
-
+/**
+ * Alternating Direction Implicit (ADI) method for solving the diffusion equation.
+ * This is an implicit method that offers better stability than FTCS, allowing larger time steps.
+ * It splits each time step into two half-steps, solving implicitly in alternating directions.
+ * 
+ * @param {Float32Array} concentrationData - Current concentration data
+ * @param {Float32Array} sources - Source terms (adding concentration)
+ * @param {Float32Array} sinks - Sink terms (removing concentration)
+ * @param {Object} constants - Simulation constants
+ * @param {number} diffusionRate - Diffusion coefficient (D)
+ * @param {number} deltaX - Spatial step size
+ * @returns {Object} Updated concentration data
+ */
+function solveADI(concentrationData, sources, sinks, constants, diffusionRate, deltaX) {
     const { WIDTH, HEIGHT } = constants.GRID;
-
-    // Create a new array for the next concentration data
-    const nextConcentrationData = new Float32Array(currentConcentrationData.length);
     
-    // Define the simulation time step used by the ADI method
-    const timeStep = 1/2
-    const numberOfStepsPerSecond = Math.round(1 / timeStep); // 
-
-    const alpha = DIFFUSION_RATE * timeStep / (2 * deltaX * deltaX); // non-dimensional diffusion coefficient
-   // Reinitialize temporary arrays for the ADI method for the current time step
-   const diagLength = Math.max(WIDTH, HEIGHT);
-
-   const a = new Float32Array(diagLength); // Lower diagonal
-   const b = new Float32Array(diagLength); // Main diagonal
-   const c = new Float32Array(diagLength); // Upper diagonal
-   const d = new Float32Array(diagLength); // Right-hand side
-   const x = new Float32Array(diagLength); // Solution vector
-   const intermediateData = new Float32Array(WIDTH * HEIGHT);
-
-   d.fill(0);
-   x.fill(0);
-   intermediateData.fill(0);
-
-    // Repeat the ADI method until one second is simulated
+    // ADI uses a fixed time step for stability and accuracy
+    const timeStep = 1; // Half-second time step
+    const numberOfStepsPerSecond = Math.round(1 / timeStep);
+    
+    // Create a copy of the input concentration data
+    let currentData = new Float32Array(concentrationData);
+    const nextData = new Float32Array(concentrationData.length);
+    
+    // Calculate the diffusion coefficient for the tridiagonal system
+    // The factor of 2 in the denominator comes from the ADI formulation
+    const alpha = diffusionRate * timeStep / (2 * deltaX * deltaX);
+    
+    // Initialize arrays for the tridiagonal system
+    const maxDimension = Math.max(WIDTH, HEIGHT);
+    const lowerDiagonal = new Float32Array(maxDimension); // a - below main diagonal
+    const mainDiagonal = new Float32Array(maxDimension);  // b - main diagonal
+    const upperDiagonal = new Float32Array(maxDimension); // c - above main diagonal
+    const rightHandSide = new Float32Array(maxDimension); // d - right-hand side
+    const solution = new Float32Array(maxDimension);      // x - solution vector
+    
+    // Intermediate data after the first half-step
+    const intermediateData = new Float32Array(WIDTH * HEIGHT);
+    
+    // Main time-stepping loop
     for (let step = 0; step < numberOfStepsPerSecond; step++) {
-
-     
-    
+        // Initialize arrays for each time step
+        rightHandSide.fill(0);
+        solution.fill(0);
+        intermediateData.fill(0);
+        
+        // ====================================================================
+        // FIRST HALF-STEP: Implicit in x-direction, explicit in y-direction
+        // ====================================================================
+        
         // Set up coefficients for the tridiagonal system
-        a.fill(-alpha);
-        b.fill(1 + 2 * alpha);
-        c.fill(-alpha);
+        lowerDiagonal.fill(-alpha);
+        mainDiagonal.fill(1 + 2 * alpha);
+        upperDiagonal.fill(-alpha);
         
-
-        
-
         // Apply boundary conditions for the x-direction
         // Left boundary (reflective)
-        b[1] = b[1] + a[1]; // Absorb the coefficient for the ghost point
-        a[1] = 0;
-            
+        mainDiagonal[1] += lowerDiagonal[1]; // Absorb coefficient for ghost point
+        lowerDiagonal[1] = 0;
+        
         // Right boundary (reflective)
-        b[WIDTH - 2] = b[WIDTH - 2] + c[WIDTH - 2]; // Absorb the coefficient for the ghost point
-        c[WIDTH - 2] = 0;
-    
-        // First half-step: implicit in x-direction, explicit in y-direction
+        mainDiagonal[WIDTH - 2] += upperDiagonal[WIDTH - 2]; // Absorb coefficient for ghost point
+        upperDiagonal[WIDTH - 2] = 0;
+        
+        // Process each row (y-direction)
         for (let j = 1; j < HEIGHT - 1; j++) {
-            // Set up the tridiagonal system for this row
+            // Set up the right-hand side for this row
             for (let i = 1; i < WIDTH - 1; i++) {
                 const idx = j * WIDTH + i;
-                const michaelisMenten = currentConcentrationData[idx] / (0.5 + currentConcentrationData[idx]);
-                // Calculate the right-hand side using explicit method in y-direction
-                const term_y = currentConcentrationData[idx] + alpha * (
-                    currentConcentrationData[(j - 1) * WIDTH + i] -
-                    2 * currentConcentrationData[idx] +
-                    currentConcentrationData[(j + 1) * WIDTH + i]
-                ) + (timeStep * scaleSinksAndSources * (sources[idx] - sinks[idx] * michaelisMenten)) / 2;
-    
-                d[i] = term_y;
+                const michaelisMentenTerm = calculateMichaelisMentenTerm(currentData[idx]);
+                
+                // Calculate explicit term in y-direction
+                const explicitYTerm = currentData[idx] + alpha * (
+                    currentData[(j - 1) * WIDTH + i] -  // North neighbor
+                    2 * currentData[idx] +              // Center point
+                    currentData[(j + 1) * WIDTH + i]    // South neighbor
+                );
+                
+                // Add source/sink contributions (half for this step)
+                const sourceSinkTerm = (timeStep * SCALE_SINKS_AND_SOURCES * 
+                                      (sources[idx] - sinks[idx] * michaelisMentenTerm)) / 2;
+                
+                rightHandSide[i] = explicitYTerm + sourceSinkTerm;
             }
             
-            
-    
             // Solve the tridiagonal system for this row
-            thomasAlgorithm(a, b, c, d, x, WIDTH - 1);
-    
-            // Store the results in the intermediate array
+            thomasAlgorithm(lowerDiagonal, mainDiagonal, upperDiagonal, rightHandSide, solution, WIDTH - 1);
+            
+            // Store results in intermediate array
             for (let i = 1; i < WIDTH - 1; i++) {
-                if (x[i] < 0) {
-                    console.warn("Concentration went negative " + x[i]);
-                    x[i] = 0; // Ensure concentration doesn't go negative
-                }
-                intermediateData[j * WIDTH + i] = x[i];
+                intermediateData[j * WIDTH + i] = solution[i];
             }
         }
-    
-        // Apply boundary conditions to the intermediate data
-        // Top and bottom boundaries (copy from adjacent interior points)
-        for (let i = 0; i < WIDTH; i++) {
-            intermediateData[i] = intermediateData[WIDTH + i]; // Top boundary
-            intermediateData[(HEIGHT - 1) * WIDTH + i] = intermediateData[(HEIGHT - 2) * WIDTH + i]; // Bottom boundary
-        }
-    
-        // Left and right boundaries (copy from adjacent interior points)
-        for (let j = 0; j < HEIGHT; j++) {
-            intermediateData[j * WIDTH] = intermediateData[j * WIDTH + 1]; // Left boundary
-            intermediateData[j * WIDTH + WIDTH - 1] = intermediateData[j * WIDTH + WIDTH - 2]; // Right boundary
-        }
-
-            // Apply boundary conditions for the y-direction
-            // Top boundary (reflective)
-            b[1] = b[1] + a[1]; // Absorb the coefficient for the ghost point
-            a[1] = 0;
-            // Bottom boundary (reflective)
-            b[HEIGHT - 2] = b[HEIGHT - 2] + c[HEIGHT - 2]; // Absorb the coefficient for the ghost point
-            c[HEIGHT - 2] = 0;
-    
-        // Second half-step: explicit in x-direction, implicit in y-direction
+        
+        // Apply boundary conditions to intermediate data
+        applyReflectiveBoundaryConditions(intermediateData, WIDTH, HEIGHT);
+        enforceNonNegativeConcentration(intermediateData);
+        
+        // ====================================================================
+        // SECOND HALF-STEP: Explicit in x-direction, implicit in y-direction
+        // ====================================================================
+        
+        // Reset tridiagonal system coefficients
+        lowerDiagonal.fill(-alpha);
+        mainDiagonal.fill(1 + 2 * alpha);
+        upperDiagonal.fill(-alpha);
+        
+        // Apply boundary conditions for the y-direction
+        // Top boundary (reflective)
+        mainDiagonal[1] += lowerDiagonal[1]; // Absorb coefficient for ghost point
+        lowerDiagonal[1] = 0;
+        
+        // Bottom boundary (reflective)
+        mainDiagonal[HEIGHT - 2] += upperDiagonal[HEIGHT - 2]; // Absorb coefficient for ghost point
+        upperDiagonal[HEIGHT - 2] = 0;
+        
+        // Process each column (x-direction)
         for (let i = 1; i < WIDTH - 1; i++) {
-            // Set up the tridiagonal system for this column
+            // Set up the right-hand side for this column
             for (let j = 1; j < HEIGHT - 1; j++) {
                 const idx = j * WIDTH + i;
-                const michaelisMenten = intermediateData[idx] / (0.5 + intermediateData[idx]);
-                // Calculate the right-hand side using explicit method in x-direction
-                const term_x = intermediateData[idx] + alpha * (
-                    intermediateData[j * WIDTH + (i - 1)] -
-                    2 * intermediateData[idx] +
-                    intermediateData[j * WIDTH + (i + 1)]
-                ) + (timeStep * scaleSinksAndSources * (sources[idx] - sinks[idx] * michaelisMenten)) / 2;
-    
-                d[j] = term_x;
+                const michaelisMentenTerm = calculateMichaelisMentenTerm(intermediateData[idx]);
+                
+                // Calculate explicit term in x-direction
+                const explicitXTerm = intermediateData[idx] + alpha * (
+                    intermediateData[j * WIDTH + (i - 1)] -  // West neighbor
+                    2 * intermediateData[idx] +              // Center point
+                    intermediateData[j * WIDTH + (i + 1)]    // East neighbor
+                );
+                
+                // Add source/sink contributions (half for this step)
+                const sourceSinkTerm = (timeStep * SCALE_SINKS_AND_SOURCES * 
+                                      (sources[idx] - sinks[idx] * michaelisMentenTerm)) / 2;
+                
+                rightHandSide[j] = explicitXTerm + sourceSinkTerm;
             }
-    
-    
-            // Solve the tridiagonal system for this column
-            thomasAlgorithm(a, b, c, d, x, HEIGHT - 1);
-    
-            // Store the results in the next concentration data array
-            for (let j = 1; j < HEIGHT - 1; j++) {
-                if (x[j] < 0) {
-                    console.warn("Concentration went negative " + x[j]);
-                    x[j] = 0; // Ensure concentration doesn't go negative
-                }
-                nextConcentrationData[j * WIDTH + i] = x[j];
-            }
-
             
+            // Solve the tridiagonal system for this column
+            thomasAlgorithm(lowerDiagonal, mainDiagonal, upperDiagonal, rightHandSide, solution, HEIGHT - 1);
+            
+            // Store results in next data array
+            for (let j = 1; j < HEIGHT - 1; j++) {
+                nextData[j * WIDTH + i] = solution[j];
+            }
         }
-    
-        // Apply boundary conditions to the final data
-        // Top and bottom boundaries (copy from adjacent interior points)
-        for (let i = 0; i < WIDTH; i++) {
-            nextConcentrationData[i] = nextConcentrationData[WIDTH + i]; // Top boundary
-            nextConcentrationData[(HEIGHT - 1) * WIDTH + i] = nextConcentrationData[(HEIGHT - 2) * WIDTH + i]; // Bottom boundary
-        }
-    
-        // Left and right boundaries (copy from adjacent interior points)
-        for (let j = 0; j < HEIGHT; j++) {
-            nextConcentrationData[j * WIDTH] = nextConcentrationData[j * WIDTH + 1]; // Left boundary
-            nextConcentrationData[j * WIDTH + WIDTH - 1] = nextConcentrationData[j * WIDTH + WIDTH - 2]; // Right boundary
-        }
-    
-        // Update the current concentration data with the new values for the next time step
-        currentConcentrationData = nextConcentrationData;
+        
+        // Apply boundary conditions to final data
+        applyReflectiveBoundaryConditions(nextData, WIDTH, HEIGHT);
+        enforceNonNegativeConcentration(nextData);
+        
+        // Update current data for next time step
+        currentData = nextData;
     }
     
     return {
-        currentConcentrationData: currentConcentrationData
-
+        currentConcentrationData: currentData
     };
+}
+
+// ============================================================================
+// MAIN EXPORT FUNCTION
+// ============================================================================
+
+/**
+ * Main diffusion simulation function that selects and applies the appropriate
+ * numerical method (FTCS or ADI) to solve the diffusion equation.
+ * 
+ * @param {Float32Array} concentrationData - Current concentration data
+ * @param {Float32Array} sources - Source terms (adding concentration)
+ * @param {Float32Array} sinks - Sink terms (removing concentration)
+ * @param {Object} constants - Simulation constants including grid dimensions
+ * @param {number} diffusionRate - Diffusion coefficient (D)
+ * @param {number} deltaX - Spatial step size
+ * @param {number} deltaT - Time step size
+ * @param {string} method - Numerical method to use ("FTCS" or "ADI")
+ * @returns {Object} Updated concentration data
+ */
+export function diffusionCore(
+    concentrationData, 
+    sources, 
+    sinks, 
+    constants, 
+    diffusionRate, 
+    deltaX, 
+    deltaT, 
+    method
+) {
+    // Select the appropriate solver based on the method parameter
+    switch (method) {
+        case "FTCS":
+            return solveFTCS(concentrationData, sources, sinks, constants, diffusionRate, deltaX, deltaT);
+        case "ADI":
+            return solveADI(concentrationData, sources, sinks, constants, diffusionRate, deltaX);
+        default:
+            throw new Error(`Unknown diffusion method: ${method}. Supported methods are "FTCS" and "ADI".`);
+    }
 }
