@@ -3,6 +3,7 @@ import { animationState, constants} from './state.js';
 // External variables from main.js that we need to access
 let runCount = 0;
 let steadyStateTimes = [];
+let steadyStateSteps = [];
 let maxRuns = Infinity;
 let autoRestart = true;
 
@@ -13,9 +14,10 @@ let autoRestart = true;
  * @param {number} [max=Infinity] - Maximum number of runs
  * @param {boolean} [auto=true] - Whether automatic restarting is enabled
  */
-export const setOverlayData = (count, times, max = Infinity, auto = true) => {
+export const setOverlayData = (count, times,steps, max = Infinity, auto = true) => {
     runCount = count;
     steadyStateTimes = times;
+    steadyStateSteps = steps;
     maxRuns = max;
     autoRestart = auto;
 };
@@ -44,14 +46,18 @@ Parallelization: ${constants.parallelization}`;
             // Show the last 5 runs or fewer if less than 5 runs have completed
             const startIdx = Math.max(0, steadyStateTimes.length - 5);
             for (let i = startIdx; i < steadyStateTimes.length; i++) {
-                overlayText += `\nRun ${i + 1}: ${steadyStateTimes[i].toFixed(2)}`;
+                overlayText += `\nRun ${i + 1}: ${steadyStateTimes[i]}ms, ${steadyStateSteps[i]} steps`;
             }
+           
             
             // Add average time if more than one run
             if (steadyStateTimes.length > 1) {
                 const avgTime = steadyStateTimes.reduce((sum, time) => sum + time, 0) / steadyStateTimes.length;
-                overlayText += `\n\nAverage Time: ${avgTime.toFixed(2)} ms`;
+                const avgSteps = steadyStateSteps.reduce((sum, step) => sum + step, 0) / steadyStateSteps.length;
+                overlayText += `\n\nAverage Time: ${avgTime.toFixed(2)}`;
+                overlayText += ` and steps: ${avgSteps.toFixed(2)}`;
             }
+           
         }
         
    

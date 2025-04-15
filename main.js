@@ -8,6 +8,7 @@ import { initArrays } from './state.js';
 export let stop = false;
 let runCount = 0;
 let steadyStateTimes = [];
+let steadyStateSteps = [];
 let maxRuns = Infinity; // Default to infinite runs
 let autoRestart = true; // Flag to control automatic restarting
 const DIFFUSION_RATE = 100; // micrometers squared per seconds
@@ -92,16 +93,18 @@ const updateScene = () => {
     stop = updateSurfaceMesh();
     
     // Update overlay with current run data
-    setOverlayData(runCount, steadyStateTimes, maxRuns, autoRestart);
+    setOverlayData(runCount, steadyStateTimes,steadyStateSteps, maxRuns, autoRestart);
     updateLoggsOverlay();
 
     if(!steadyState && !stop) {
         if (constants.parallelization) {
+            dataState.lastConcentrationData = dataState.currentConcentrationData
             requestDiffusionCalculation();  //uncomment this line to use the worker instead of the main thread
             
         } else {
+            dataState.lastConcentrationData = dataState.currentConcentrationData;
             [dataState.currentConcentrationData] = diffusion();
-            //steadyState = checkForSteadyState();
+            steadyState = checkForSteadyState();
         }
         
     } else if (init && steadyState) {
@@ -109,6 +112,7 @@ const updateScene = () => {
         const time1 = performance.now();
         const elapsedTime = time1 - time0;
         steadyStateTimes.push(elapsedTime);
+        steadyStateSteps.push(animationState.currentTimeStep);
         
         console.log(`Run ${runCount + 1}: It took ${elapsedTime} milliseconds to reach steady state.`);
         
@@ -172,16 +176,17 @@ export const setAutoRestart = (enabled) => {
 
 
 const checkForSteadyState = () => { 
-    const { currentConcentrationData, nextConcentrationData } = dataState;
-    const threshold = 0.000004; // Define a threshold for steady state
+    const { currentConcentrationData, lastConcentrationData } = dataState;
+    const threshold = 0.001; // Define a threshold for steady state
     steadyState = false;
     let errorAccumulated = 0;
     for (let i = 0; i < currentConcentrationData.length; i++) {
-        const diff = Math.abs(currentConcentrationData[i] - nextConcentrationData[i]);
+        const diff = Math.abs(currentConcentrationData[i] - lastConcentrationData[i]);
         errorAccumulated += diff;
     }
     errorAccumulated /= currentConcentrationData.length;
     steadyState = errorAccumulated < threshold;
+    //console.log("errorAccumulated", errorAccumulated);
     return steadyState;
 }
 
@@ -213,45 +218,8 @@ window.addEventListener('load', () => {
     console.log("Starting automatic simulation runs...");
     runCount = 0;
     steadyStateTimes = [];
-    
-    // Add keyboard controls for the simulation
-    document.addEventListener('keydown', (event) => {
-        switch(event.key) {
-            case 'r': // Reset and restart simulation
-                console.log("Manual restart triggered");
-                runCount = 0;
-                steadyStateTimes = [];
-                setupNewScene();
-                init = false; // Force reinitialization
-                animate();
-                break;
-            case 's': // Toggle automatic restarting
-                autoRestart = !autoRestart;
-                console.log(`Automatic restarting ${autoRestart ? 'enabled' : 'disabled'}`);
-                // Update overlay immediately to show the change
-                setOverlayData(runCount, steadyStateTimes, maxRuns, autoRestart);
-                updateLoggsOverlay();
-                break;
-            case '1': case '2': case '3': case '4': case '5':
-            case '6': case '7': case '8': case '9':
-                // Set max runs (1-9)
-                maxRuns = parseInt(event.key);
-                console.log(`Maximum runs set to: ${maxRuns}`);
-                // Update overlay immediately to show the change
-                setOverlayData(runCount, steadyStateTimes, maxRuns, autoRestart);
-                updateLoggsOverlay();
-                break;
-            case '0':
-                // Infinite runs
-                maxRuns = Infinity;
-                console.log("Maximum runs set to: Infinite");
-                // Update overlay immediately to show the change
-                setOverlayData(runCount, steadyStateTimes, maxRuns, autoRestart);
-                updateLoggsOverlay();
-                break;
-        }
-    });
-    
+    steadyStateSteps = [];
+ 
     setupNewScene();
     animate();
 });

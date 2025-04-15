@@ -16,7 +16,7 @@ export const animationState = {
 
 export const dataState = {
     currentConcentrationData: null,
-    nextConcentrationData: null,
+    lastConcentrationData: null,
     colors: null,
     sources: null,
     sinks: null,
@@ -37,17 +37,17 @@ export const initArrays = () => {
     const gridSize = GRID.WIDTH * GRID.HEIGHT;
 
     dataState.currentConcentrationData = new Float32Array(gridSize);
-    dataState.nextConcentrationData = new Float32Array(gridSize);
-    dataState.currentConcentrationData.fill(20);
-    dataState.nextConcentrationData.fill(20);
+    dataState.lastConcentrationData = new Float32Array(gridSize);
+    dataState.currentConcentrationData.fill(15);
+    dataState.lastConcentrationData.fill(15);
     dataState.colors = new Float32Array(gridSize * 3);
     
     // Initialize sources and sinks
     const sources = new Float32Array(gridSize);
     const sinks = new Float32Array(gridSize);
 
-    const numberOfSinksAndSources = 10; 
-    const smoothFactor = 1; // Adjust this value to control the smoothness of the sources and sinks
+    const numberOfSinksAndSources = 20; 
+    const smoothFactor = 0.5; // Adjust this value to control the smoothness of the sources and sinks
     
     const sourcePositions = new Set();
     const sinkPositions = new Set();
