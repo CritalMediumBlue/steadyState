@@ -1,8 +1,8 @@
 export const CONFIG = {
     SCENE: {
         FOG_COLOR: 0x000000,
-        FOG_NEAR: 1,
-        FOG_FAR: 1000,
+        FOG_NEAR: 10,
+        FOG_FAR: 150,
         
         CAMERA_FOV: 75,
         CAMERA_NEAR: 0.1,

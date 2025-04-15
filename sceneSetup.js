@@ -52,6 +52,7 @@ function createMesh(scene) {
 function createScene() {
     const scene = new THREE.Scene();
     scene.fog = new THREE.Fog(CONFIG.SCENE.FOG_COLOR, CONFIG.SCENE.FOG_NEAR, CONFIG.SCENE.FOG_FAR);
+   
     return scene;
 }
 

@@ -21,7 +21,7 @@ export const updateSurfaceMesh = (mesh,concentrationData) => {
                 concentration = concentrationData[idx] = 0.0;
                 stop = true;
             }
-            const height = concentration;
+            const height = concentration-11;
 
             
             // Set height (z-coordinate) based on concentration

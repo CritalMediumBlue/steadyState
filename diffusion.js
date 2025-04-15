@@ -6,7 +6,7 @@ import { diffusionCore } from './diffusionCore.js';
  * @param {string} [method='FTCS'] - Numerical method to use for diffusion
  * @returns {[Float32Array, Float32Array]} Updated concentration data
  */
-export const diffusion = (concentration) => {
+export const diffusion = (concentration,method) => {
     const { 
         sources, 
         sinks 
@@ -16,7 +16,7 @@ export const diffusion = (concentration) => {
         DIFFUSION_RATE,
         deltaX,
         deltaT,
-        method
+        
     } = constants;
 
     const result = diffusionCore(

@@ -25,7 +25,7 @@ constants.deltaT = deltaT;
 constants.numberOfStepsPerSecond = numberOfStepsPerSecond;
 
 //constants.method = "FTCS"; 
-constants.method = "FTCS"; 
+//constants.method = "FTCS"; 
 constants.parallelization = true;
 
 
@@ -64,6 +64,8 @@ const requestDiffusionCalculation = (concentration1, concentration2) => {
         DIFFUSION_RATE,
         deltaX,
         deltaT,
+        method1: "FTCS",
+        method2: "ADI"
     });
 };
 
@@ -113,8 +115,8 @@ const updateScene = () => {
             dataState.lastConcentrationData2 = dataState.currentConcentrationData2;
 
 
-            [dataState.currentConcentrationData] = diffusion(dataState.currentConcentrationData);
-            [dataState.currentConcentrationData2] = diffusion(dataState.currentConcentrationData2);
+            [dataState.currentConcentrationData] = diffusion(dataState.currentConcentrationData,"FTCS");
+            [dataState.currentConcentrationData2] = diffusion(dataState.currentConcentrationData2,"ADI");
             steadyState1 = checkForSteadyState(dataState.currentConcentrationData, dataState.lastConcentrationData);
             steadyState2 = checkForSteadyState(dataState.currentConcentrationData2, dataState.lastConcentrationData2);
         }

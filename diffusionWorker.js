@@ -11,6 +11,8 @@ self.onmessage = function(e) {
         DIFFUSION_RATE,
         deltaX,
         deltaT,
+        method1,
+        method2
          
     } = e.data;
     
@@ -23,7 +25,7 @@ self.onmessage = function(e) {
         DIFFUSION_RATE,
         deltaX,
         deltaT,
-        constants.method
+        method1
     );
 
     const result2 = diffusionCore(
@@ -34,7 +36,7 @@ self.onmessage = function(e) {
         DIFFUSION_RATE,
         deltaX,
         deltaT,
-        constants.method
+        method2
     );
 
     
