@@ -45,6 +45,7 @@ export const initArrays = () => {
     dataState.lastConcentrationData2 = new Float32Array(gridSize);
     dataState.currentConcentrationData.fill(12.5);
     dataState.currentConcentrationData2.fill(12.5);
+    
     dataState.colors = new Float32Array(gridSize * 3);
     
     // Initialize sources and sinks

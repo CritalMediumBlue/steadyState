@@ -25,8 +25,8 @@ constants.deltaT = deltaT;
 constants.numberOfStepsPerSecond = numberOfStepsPerSecond;
 
 //constants.method = "FTCS"; 
-constants.method = "ADI"; 
-constants.parallelization = false;
+constants.method = "FTCS"; 
+constants.parallelization = true;
 
 
 // Create Web Worker for diffusion calculations
@@ -38,7 +38,7 @@ let isWorkerBusy = false;
 /**
  * Request diffusion calculation from Web Worker
  */
-const requestDiffusionCalculation = (concentration) => {
+const requestDiffusionCalculation = (concentration1, concentration2) => {
     if (isWorkerBusy) return;
 
     isWorkerBusy = true;
@@ -56,7 +56,8 @@ const requestDiffusionCalculation = (concentration) => {
     } = constants;
 
     diffusionWorker.postMessage({
-        concentration,
+        concentration1,
+        concentration2,
         sources,
         sinks,
         constants,
@@ -68,14 +69,16 @@ const requestDiffusionCalculation = (concentration) => {
 
 // Set up worker message handler
 diffusionWorker.onmessage = function(e) {
-    const { currentConcentrationData } = e.data;
+    const { currentConcentrationData, currentConcentrationData2 } = e.data;
     
      
         dataState.currentConcentrationData = currentConcentrationData;
+        dataState.currentConcentrationData2 = currentConcentrationData2;
      
       
     animationState.currentTimeStep++;
-    steadyState = checkForSteadyState();
+    steadyState1 = checkForSteadyState(dataState.lastConcentrationData, dataState.currentConcentrationData);
+    steadyState2 = checkForSteadyState(dataState.lastConcentrationData2, dataState.currentConcentrationData2);
     
     isWorkerBusy = false;
 };
@@ -102,7 +105,8 @@ const updateScene = () => {
     if(!steadyState1 && !stop && !steadyState2) {
         if (constants.parallelization) {
             dataState.lastConcentrationData = dataState.currentConcentrationData
-            requestDiffusionCalculation(dataState.currentConcentrationData);  //uncomment this line to use the worker instead of the main thread
+            dataState.lastConcentrationData2 = dataState.currentConcentrationData2;
+            requestDiffusionCalculation(dataState.currentConcentrationData, dataState.currentConcentrationData2);  //uncomment this line to use the worker instead of the main thread
             
         } else {
             dataState.lastConcentrationData = dataState.currentConcentrationData;
