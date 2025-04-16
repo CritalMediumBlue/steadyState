@@ -9,7 +9,8 @@ export let stop = false;
 let runCount = 0;
 let steadyStateTimes = [];
 let steadyStateSteps = [];
-let maxRuns = 200; // Default to infinite runs
+let counter = 0;
+let maxRuns = 500; // Default to infinite runs
 let autoRestart = true; // Flag to control automatic restarting
 const DIFFUSION_RATE = 100; // micrometers squared per seconds
 const deltaX = 1; // micrometers
@@ -25,7 +26,7 @@ constants.deltaT = deltaT;
 constants.numberOfStepsPerSecond = numberOfStepsPerSecond;
 
 //constants.method = "FTCS"; 
-constants.method = "ADI"; 
+constants.method = "FTCS"; 
 constants.parallelization = true;
 
 
@@ -95,6 +96,8 @@ const updateScene = () => {
     stop = updateSurfaceMesh(sceneState.surfaceMesh, dataState.currentConcentrationData);
 
     
+
+    
     // Update overlay with current run data
     setOverlayData(runCount, steadyStateTimes,steadyStateSteps, maxRuns, autoRestart);
     updateLoggsOverlay();
@@ -137,12 +140,24 @@ const updateScene = () => {
 const resetSimulation = () => {
     // Check if we've reached the maximum number of runs
     if (runCount >= maxRuns || !autoRestart) {
-        console.log(`Completed ${runCount} runs. Stopping automatic simulation.`);
+        console.log(`Completed ${runCount} runs.`);
         // Don't restart, just stop
-        stop = true;
+        //stop = true;
         console.log(steadyStateTimes);
         console.log(steadyStateSteps);
-        return;
+        constants.method = constants.method === "FTCS" ? "ADI" : "FTCS";
+        console.log("Switching method to", constants.method);
+        runCount = 0;
+        steadyState1 = false;
+        steadyStateTimes = [];
+        steadyStateSteps = [];
+        counter += 1;
+        console.log("Counter", counter);
+        if (counter >= 5) {
+            console.log("Stopping simulation after 5 runs.");
+            stop = true;
+            return;
+        }
     }
     
     // Reset animation state
@@ -159,7 +174,6 @@ const resetSimulation = () => {
     // Record start time for new run
     time0 = performance.now();
     
-    console.log(`Starting run ${runCount + 1}...`);
 };
 
 /**

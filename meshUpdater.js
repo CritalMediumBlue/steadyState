@@ -25,7 +25,7 @@ export const updateSurfaceMesh = (mesh,concentrationData) => {
 
             
             // Set height (z-coordinate) based on concentration
-            positions[3 * idx + 2] = isNaN(height) ? 0 : height*2;
+            positions[3 * idx + 2] = isNaN(height) ? 0 : height*3;
             
             // Calculate and set color
             const color = calculateColor(concentration);
