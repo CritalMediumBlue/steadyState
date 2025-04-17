@@ -178,7 +178,7 @@ function solveADI(concentrationData, sources, sinks, constants, diffusionRate, d
     const { WIDTH, HEIGHT } = constants.GRID;
     
     // ADI uses a fixed time step for stability and accuracy
-    const timeStep = 1; // Half-second time step
+    const timeStep = 1; // one second
     const numberOfStepsPerSecond = Math.round(1 / timeStep);
     
     // Create a copy of the input concentration data

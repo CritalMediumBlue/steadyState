@@ -1,3 +1,4 @@
+// Import necessary modules from Three.js
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { CONFIG } from './config.js';
@@ -5,61 +6,37 @@ import { constants } from './state.js';
 
 /**
  * Sets up the scene, camera, renderer, and controls.
- * @returns {Object} An object containing the scene, camera, renderer, and controls.
+ * @returns {Object} An object containing the scene, camera, renderer, controls, and surfaceMesh.
  */
 export function setupScene() {
-    const scene = createScene();
-    const camera = createCamera();
-    const renderer = createRenderer();
-    const controls = createControls(camera, renderer);
-    const surfaceMesh = createMesh(scene, camera, renderer, controls);
-     //add helper axes
-     const axesHelper = new THREE.AxesHelper(10);
-     scene.add(axesHelper);
+    const scene = initializeScene();
+    const camera = initializeCamera();
+    const renderer = initializeRenderer();
+    const controls = initializeControls(camera, renderer);
+    const surfaceMesh = initializeMesh(scene);
 
-    return { scene, camera, renderer, surfaceMesh};
+    // Add helper axes to the scene for orientation visualization
+    const axesHelper = new THREE.AxesHelper(10);
+    scene.add(axesHelper);
+
+    return { scene, camera, renderer, controls, surfaceMesh };
 }
-
-function createMesh(scene) {
-
-    const WIDTH = constants.GRID.WIDTH;
-    const HEIGHT = constants.GRID.HEIGHT;
-
-    const planeGeometry = new THREE.PlaneGeometry(WIDTH-1, HEIGHT-1, WIDTH -1, HEIGHT-1 ); // width, height, widthSegments, heightSegments
-    planeGeometry.rotateZ(-Math.PI);
-    planeGeometry.rotateY(-Math.PI);
-    const material = new THREE.MeshBasicMaterial({
-        wireframe: true, 
-        wireframeLinewidth: 3,
-        vertexColors: true
-    });
-
-    const surfaceMesh = new THREE.Mesh(planeGeometry, material);
-    scene.add(surfaceMesh);
-    surfaceMesh.position.set(0, 0, 0);
-
-   
-    return surfaceMesh;
-}
-
-
 
 /**
- * Creates and returns a new THREE.Scene object.
+ * Initializes the scene with fog and returns it.
  * @returns {THREE.Scene} The created scene.
  */
-function createScene() {
+function initializeScene() {
     const scene = new THREE.Scene();
     scene.fog = new THREE.Fog(CONFIG.SCENE.FOG_COLOR, CONFIG.SCENE.FOG_NEAR, CONFIG.SCENE.FOG_FAR);
-   
     return scene;
 }
 
 /**
- * Creates and returns a new THREE.PerspectiveCamera object.
+ * Initializes the camera with perspective projection and positions it.
  * @returns {THREE.PerspectiveCamera} The created camera.
  */
-function createCamera() {
+function initializeCamera() {
     const camera = new THREE.PerspectiveCamera(
         CONFIG.SCENE.CAMERA_FOV,
         window.innerWidth / window.innerHeight,
@@ -80,33 +57,62 @@ function createCamera() {
 }
 
 /**
- * Creates and returns a new THREE.WebGLRenderer object.
+ * Initializes the WebGL renderer and sets its size.
  * @returns {THREE.WebGLRenderer} The created renderer.
  */
-function createRenderer() {
-    const renderer = new THREE.WebGLRenderer( {antialias: false});
+function initializeRenderer() {
+    const renderer = new THREE.WebGLRenderer({ antialias: false });
     renderer.setSize(window.innerWidth, window.innerHeight);
     return renderer;
 }
 
 /**
- * Creates and returns a new OrbitControls object.
+ * Initializes the OrbitControls for the camera and configures its behavior.
  * @param {THREE.Camera} camera - The camera to control.
  * @param {THREE.WebGLRenderer} renderer - The renderer to control.
  * @returns {OrbitControls} The created controls.
  */
-function createControls(camera, renderer) {
+function initializeControls(camera, renderer) {
     const controls = new OrbitControls(camera, renderer.domElement);
-    controls.enableDamping = false;
-    controls.autoRotate = false;
-    controls.screenSpacePanning = true;
-    controls.maxDistance = CONFIG.SCENE.CONTROLS_MAX_DISTANCE;
-    controls.minDistance = CONFIG.SCENE.CONTROLS_MIN_DISTANCE;
+    controls.enableDamping = false; // Disable damping for immediate response
+    controls.autoRotate = false; // Disable automatic rotation
+    controls.screenSpacePanning = true; // Allow panning in screen space
+    controls.maxDistance = CONFIG.SCENE.CONTROLS_MAX_DISTANCE; // Set maximum zoom-out distance
+    controls.minDistance = CONFIG.SCENE.CONTROLS_MIN_DISTANCE; // Set minimum zoom-in distance
     controls.target.set(
         CONFIG.SCENE.CAMERA_LOOKAT.x,
         CONFIG.SCENE.CAMERA_LOOKAT.y,
         CONFIG.SCENE.CAMERA_LOOKAT.z
     );
     return controls;
+}
+
+/**
+ * Creates and adds a surface mesh to the scene.
+ * The mesh is a wireframe plane geometry aligned with the grid dimensions.
+ * @param {THREE.Scene} scene - The scene to add the mesh to.
+ * @returns {THREE.Mesh} The created surface mesh.
+ */
+function initializeMesh(scene) {
+    const WIDTH = constants.GRID.WIDTH;
+    const HEIGHT = constants.GRID.HEIGHT;
+
+    // Create a plane geometry with segments matching the grid dimensions
+    const planeGeometry = new THREE.PlaneGeometry(WIDTH - 1, HEIGHT - 1, WIDTH - 1, HEIGHT - 1);
+    planeGeometry.rotateZ(-Math.PI); // Rotate to align with the intended orientation
+    planeGeometry.rotateY(-Math.PI);
+
+    // Create a basic material with wireframe and vertex colors enabled
+    const material = new THREE.MeshBasicMaterial({
+        wireframe: true,
+        vertexColors: true
+    });
+
+    // Create the mesh and position it at the origin
+    const surfaceMesh = new THREE.Mesh(planeGeometry, material);
+    surfaceMesh.position.set(0, 0, 0);
+    scene.add(surfaceMesh);
+
+    return surfaceMesh;
 }
 
