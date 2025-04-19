@@ -38,7 +38,7 @@ export const updateLoggsOverlay = () => {
     if (!overlay) return; // Exit if the overlay element is not found
 
     // Calculate elapsed time in hours, minutes, and seconds
-    const timeInMinutes = animationState.currentTimeStep * (1 / 60);
+    const timeInMinutes = animationState.currentTimeStep * (1 / 60)* constants.timeLapse;
     const hours = Math.floor(timeInMinutes / 60);
     const minutes = Math.floor(timeInMinutes % 60);
     const seconds = Math.floor((timeInMinutes * 60) % 60);

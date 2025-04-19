@@ -106,20 +106,22 @@ function calculateMichaelisMentenTerm(concentration) {
  * @param {number} deltaT - Time step size
  * @returns {Object} Updated concentration data
  */
-function solveFTCS(concentrationData, sources, sinks, constants, diffusionRate, deltaX, deltaT) {
+function solveFTCS(concentrationData, sources, sinks, constants, diffusionRate, deltaX,timeLapse, deltaT) {
     const { WIDTH, HEIGHT } = constants.GRID;
-    const numberOfStepsPerSecond = Math.round(1 / deltaT);
+    const totalNumberOfSteps = Math.round(timeLapse / deltaT);
+    const scaleSinksAndSources = SCALE_SINKS_AND_SOURCES * timeLapse;
     
     // Create copies of input arrays to avoid modifying originals
     let current = new Float32Array(concentrationData);
     let next = new Float32Array(concentrationData);
+    const originalData = new Float32Array(concentrationData);
     
     // Pre-calculate the diffusion parameter for efficiency
     // This represents (D*Δt)/(Δx²) in the finite difference approximation
     const diffusionParameter = diffusionRate * deltaT / (deltaX * deltaX);
     
     // Main time-stepping loop
-    for (let step = 0; step < numberOfStepsPerSecond; step++) {
+    for (let step = 0; step < totalNumberOfSteps; step++) {
         // Interior points calculation (excluding boundaries)
         for (let y = 1; y < HEIGHT - 1; y++) {
             const rowStart = y * WIDTH;
@@ -143,7 +145,7 @@ function solveFTCS(concentrationData, sources, sinks, constants, diffusionRate, 
                 next[idx] = current[idx] + 
                            diffusionTerm + 
                            (sources[idx] - sinks[idx] * michaelisMentenTerm) * 
-                           SCALE_SINKS_AND_SOURCES / numberOfStepsPerSecond;
+                           scaleSinksAndSources / totalNumberOfSteps;
             }
         }
         
@@ -155,9 +157,13 @@ function solveFTCS(concentrationData, sources, sinks, constants, diffusionRate, 
         // Note: We're reusing the same array reference to avoid unnecessary allocations
         [current, next] = [next, current];
     }
+
+    // Check for steady state
+    const steadyState = checkForSteadyState(current, originalData);
     
     return {
-        currentConcentrationData: current
+        currentConcentrationData: current,
+        steadyState: steadyState
     };
 }
 
@@ -172,18 +178,25 @@ function solveFTCS(concentrationData, sources, sinks, constants, diffusionRate, 
  * @param {Object} constants - Simulation constants
  * @param {number} diffusionRate - Diffusion coefficient (D)
  * @param {number} deltaX - Spatial step size
+ * @param {number} timeLapse - Time lapse for the simulation in seconds
  * @returns {Object} Updated concentration data
  */
-function solveADI(concentrationData, sources, sinks, constants, diffusionRate, deltaX) {
+function solveADI(concentrationData, sources, sinks, constants, diffusionRate, deltaX, timeLapse) {
     const { WIDTH, HEIGHT } = constants.GRID;
     
     // ADI uses a fixed time step for stability and accuracy
-    const timeStep = 1; // one second
-    const numberOfStepsPerSecond = Math.round(1 / timeStep);
+    const timeStep = 1; // one second is the maximum time step
+    const totalNumberOfSteps = Math.round(timeLapse / timeStep);
+    const scaleSinksAndSources = SCALE_SINKS_AND_SOURCES ;
+
     
     // Create a copy of the input concentration data
     let currentData = new Float32Array(concentrationData);
-    const nextData = new Float32Array(concentrationData.length);
+    let nextData = new Float32Array(concentrationData.length);
+
+    //copy the original data. this is used to check for steady state
+    const originalData = new Float32Array(concentrationData);
+
     
     // Calculate the diffusion coefficient for the tridiagonal system
     // The factor of 2 in the denominator comes from the ADI formulation
@@ -201,7 +214,7 @@ function solveADI(concentrationData, sources, sinks, constants, diffusionRate, d
     const intermediateData = new Float32Array(WIDTH * HEIGHT);
     
     // Main time-stepping loop
-    for (let step = 0; step < numberOfStepsPerSecond; step++) {
+    for (let step = 0; step < totalNumberOfSteps; step++) {
         // Initialize arrays for each time step
         rightHandSide.fill(0);
         solution.fill(0);
@@ -240,7 +253,7 @@ function solveADI(concentrationData, sources, sinks, constants, diffusionRate, d
                 );
                 
                 // Add source/sink contributions (half for this step)
-                const sourceSinkTerm = (timeStep * SCALE_SINKS_AND_SOURCES * 
+                const sourceSinkTerm = (timeStep * scaleSinksAndSources * 
                                       (sources[idx] - sinks[idx] * michaelisMentenTerm)) / 2;
                 
                 rightHandSide[i] = explicitYTerm + sourceSinkTerm;
@@ -292,7 +305,7 @@ function solveADI(concentrationData, sources, sinks, constants, diffusionRate, d
                 );
                 
                 // Add source/sink contributions (half for this step)
-                const sourceSinkTerm = (timeStep * SCALE_SINKS_AND_SOURCES * 
+                const sourceSinkTerm = (timeStep * scaleSinksAndSources * 
                                       (sources[idx] - sinks[idx] * michaelisMentenTerm)) / 2;
                 
                 rightHandSide[j] = explicitXTerm + sourceSinkTerm;
@@ -312,11 +325,15 @@ function solveADI(concentrationData, sources, sinks, constants, diffusionRate, d
         enforceNonNegativeConcentration(nextData);
         
         // Update current data for next time step
-        currentData = nextData;
+        [currentData, nextData] = [nextData, currentData];
     }
+
+    const steadyState = checkForSteadyState(currentData, originalData);
     
     return {
-        currentConcentrationData: currentData
+        currentConcentrationData: currentData,
+        steadyState: steadyState
+
     };
 }
 
@@ -336,6 +353,7 @@ function solveADI(concentrationData, sources, sinks, constants, diffusionRate, d
  * @param {number} deltaX - Spatial step size
  * @param {number} deltaT - Time step size
  * @param {string} method - Numerical method to use ("FTCS" or "ADI")
+ * @param {number} timeLapse - Time lapse for the simulation in seconds
  * @returns {Object} Updated concentration data
  */
 export function diffusionCore(
@@ -346,15 +364,38 @@ export function diffusionCore(
     diffusionRate, 
     deltaX, 
     deltaT, 
-    method
+    method,
+    timeLapse
 ) {
     // Select the appropriate solver based on the method parameter
     switch (method) {
         case "FTCS":
-            return solveFTCS(concentrationData, sources, sinks, constants, diffusionRate, deltaX, deltaT);
+            return solveFTCS(concentrationData, sources, sinks, constants, diffusionRate, deltaX, timeLapse, deltaT);
         case "ADI":
-            return solveADI(concentrationData, sources, sinks, constants, diffusionRate, deltaX);
+            return solveADI(concentrationData, sources, sinks, constants, diffusionRate, deltaX, timeLapse);
         default:
             throw new Error(`Unknown diffusion method: ${method}. Supported methods are "FTCS" and "ADI".`);
     }
 }
+
+/**
+ * Check if the system has reached a steady state.
+ * @param {Array} previous - Previous concentration data.
+ * @param {Array} next - Current concentration data.
+ * @returns {boolean} - True if steady state is reached, false otherwise.
+ */
+const checkForSteadyState = (previous, next) => {
+    const threshold = 0.001; // Threshold for steady state
+    let steadyState = true;
+    const length = previous.length;
+
+    for (let i = 0; i < length; i++) {
+        const diff = Math.abs(previous[i] - next[i]);
+        if (diff > threshold) {
+            steadyState = false;
+            break;
+        }
+    }
+
+    return  steadyState;
+};

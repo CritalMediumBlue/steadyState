@@ -10,7 +10,8 @@ self.onmessage = function(e) {
         DIFFUSION_RATE,
         deltaX,
         deltaT,
-        method,         
+        method, 
+        timeLapse        
     } = e.data;
     
     // Perform diffusion calculation
@@ -22,7 +23,8 @@ self.onmessage = function(e) {
         DIFFUSION_RATE,
         deltaX,
         deltaT,
-        method
+        method,
+        timeLapse
     );
 
    
@@ -31,6 +33,7 @@ self.onmessage = function(e) {
     // Send result back to main thread
     self.postMessage({
         currentConcentrationData: result1.currentConcentrationData,
+        steadyState: result1.steadyState,
         
     });
 };

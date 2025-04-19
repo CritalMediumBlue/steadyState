@@ -6,6 +6,8 @@ import { sceneState, animationState, dataState, constants } from './state.js';
 import { diffusion } from './diffusion.js';
 import { initArrays } from './state.js';
 
+
+
 // Global variables and constants
 export let stop = false; // Flag to stop the simulation
 let runCount = 0; // Counter for the number of simulation runs
@@ -20,6 +22,7 @@ const DIFFUSION_RATE = 100; // micrometers squared per second
 const deltaX = 1; // micrometers
 const deltaT = (Math.pow(deltaX, 2)) / (4 * DIFFUSION_RATE); // seconds
 const numberOfStepsPerSecond = Math.round(1 / deltaT); // steps per second
+const timeLapse = 5; // seconds
 
 // Log calculated constants
 console.log("numberOfStepsPerSecond", numberOfStepsPerSecond);
@@ -32,6 +35,7 @@ constants.deltaT = deltaT;
 constants.numberOfStepsPerSecond = numberOfStepsPerSecond;
 constants.method = "ADI"; // Default method
 constants.parallelization = true; // Enable parallelization
+constants.timeLapse = timeLapse;
 
 // Web Worker for diffusion calculations
 const diffusionWorker = new Worker('diffusionWorker.js', { type: 'module' });
@@ -57,15 +61,17 @@ const requestDiffusionCalculation = (concentration1) => {
         deltaX,
         deltaT,
         method: constants.method,
+        timeLapse,
     });
 };
 
 // Handle messages from the Web Worker
 diffusionWorker.onmessage = function(e) {
-    const { currentConcentrationData } = e.data;
+    const { currentConcentrationData, steadyState } = e.data;
+
     dataState.currentConcentrationData = currentConcentrationData;
+    steadyState1 = steadyState;
     animationState.currentTimeStep++;
-    steadyState1 = checkForSteadyState(dataState.lastConcentrationData, dataState.currentConcentrationData);
     isWorkerBusy = false;
 };
 
@@ -92,8 +98,7 @@ const updateScene = () => {
             requestDiffusionCalculation(dataState.currentConcentrationData);
         } else {
             dataState.lastConcentrationData = dataState.currentConcentrationData;
-            [dataState.currentConcentrationData] = diffusion(dataState.currentConcentrationData, constants.method);
-            steadyState1 = checkForSteadyState(dataState.currentConcentrationData, dataState.lastConcentrationData);
+            [dataState.currentConcentrationData, steadyState1] = diffusion(dataState.currentConcentrationData, constants.method,1);
         }
     } else if (init && steadyState1) {
         handleSteadyState();
@@ -158,23 +163,7 @@ const finalizeSimulation = () => {
     }
 };
 
-/**
- * Check if the system has reached a steady state.
- * @param {Array} previous - Previous concentration data.
- * @param {Array} next - Current concentration data.
- * @returns {boolean} - True if steady state is reached, false otherwise.
- */
-const checkForSteadyState = (previous, next) => {
-    const threshold = 0.0005; // Threshold for steady state
-    let errorAccumulated = 0;
 
-    for (let i = 0; i < previous.length; i++) {
-        const diff = Math.pow((previous[i] - next[i]), 2);
-        errorAccumulated += diff;
-    }
-
-    return errorAccumulated < threshold;
-};
 
 /**
  * Set the maximum number of runs.

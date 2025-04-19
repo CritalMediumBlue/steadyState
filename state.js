@@ -92,7 +92,8 @@ export const initArrays = () => {
         smoothFactor,
         constants.deltaX,
         constants.deltaT,
-        "FTCS" 
+        "FTCS",
+        1
     );
     dataState.sources = result.currentConcentrationData;
 
@@ -105,7 +106,8 @@ export const initArrays = () => {
         smoothFactor,
         constants.deltaX,
         constants.deltaT,
-        "FTCS"
+        "FTCS",
+        1
     );
     dataState.sinks = result2.currentConcentrationData;
 
