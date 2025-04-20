@@ -7,6 +7,7 @@ import {
      initSimulation 
      } from './simulation.js';
 import { dataState} from './state.js';
+import { SceneConf, Grid } from './config.js';
 
 
 /**
@@ -27,7 +28,7 @@ const animate = () => {
 
 // Initialize the scene and start the animation loop when the page loads
 window.addEventListener('load', () => {
-    setupNewScene();
+    setupNewScene(Grid, SceneConf);
     initSimulation();
     animate();
 });

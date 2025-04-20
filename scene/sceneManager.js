@@ -1,5 +1,4 @@
 import * as THREE from 'three';
-import { SceneConf, Grid } from '../config.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { updateSurfaceMesh } from './mesh.js';
 import { updateLoggsOverlay } from './overlay.js';
@@ -15,13 +14,14 @@ export const scene = {
 /**
  * Setup new scene and initialize simulation arrays
  */
-export const setupNewScene = () => {
-    const setup = setupScene();
+export const setupNewScene = (Grid, SceneConf) => {
+    const setup = setupScene(Grid, SceneConf);
     Object.assign(scene, setup);
     document.getElementById('scene-container').appendChild(scene.renderer.domElement);
 };
 
 export const updateScene = (dataState) => {
+    
     const { currentConcentrationData, currentTimeStep, 
         steadyStateTimes, steadyStateSteps, runCount, maxRuns,
         timeLapse, method
@@ -47,7 +47,7 @@ export const updateScene = (dataState) => {
     scene.renderer.render(scene.scene, scene.camera);
 }
 
-const setupScene = () => {
+const setupScene = (Grid, SceneConf) => {
     const scene = new THREE.Scene();
     scene.fog = new THREE.Fog(SceneConf.FOG_COLOR, SceneConf.FOG_NEAR, SceneConf.FOG_FAR);
 
