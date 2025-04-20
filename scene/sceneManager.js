@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { updateSurfaceMesh } from './mesh.js';
-import { updateLoggsOverlay } from './overlay.js';
+import { updateSurfaceMesh } from './sceneComponents/concentrationMesh.js';
+import { updateLoggsOverlay } from './sceneComponents/UIoverlay.js';
 
 export const scene = {
     scene: null,
