@@ -5,8 +5,7 @@ import { updateLoggsOverlay, setOverlayData } from './overlayManager.js';
 import { sceneState, animationState, dataState, constants } from './state.js';
 import { diffusion } from './diffusion.js';
 import { initArrays } from './state.js';
-
-
+import { DiffParams, DELTA_T } from './config.js';
 
 // Global variables and constants
 export let stop = false; // Flag to stop the simulation
@@ -17,25 +16,9 @@ let counter = 0; // Counter for method switching
 let maxRuns = 500; // Maximum number of runs (default)
 let autoRestart = true; // Flag to control automatic restarting
 
-// Diffusion-related constants
-const DIFFUSION_RATE = 100; // micrometers squared per second
-const deltaX = 1; // micrometers
-const deltaT = (Math.pow(deltaX, 2)) / (4 * DIFFUSION_RATE); // seconds
-const numberOfStepsPerSecond = Math.round(1 / deltaT); // steps per second
-const timeLapse = 5; // seconds
-
 // Log calculated constants
-console.log("numberOfStepsPerSecond", numberOfStepsPerSecond);
-console.log("deltaT", deltaT);
-
-// Update constants in the shared state
-constants.DIFFUSION_RATE = DIFFUSION_RATE;
-constants.deltaX = deltaX;
-constants.deltaT = deltaT;
-constants.numberOfStepsPerSecond = numberOfStepsPerSecond;
-constants.method = "ADI"; // Default method
-constants.parallelization = true; // Enable parallelization
-constants.timeLapse = timeLapse;
+console.log("numberOfStepsPerSecond", constants.numberOfStepsPerSecond);
+console.log("deltaT", constants.deltaT);
 
 // Web Worker for diffusion calculations
 const diffusionWorker = new Worker('diffusionWorker.js', { type: 'module' });
@@ -50,7 +33,8 @@ const requestDiffusionCalculation = (concentration1) => {
 
     isWorkerBusy = true;
     const { sources, sinks } = dataState;
-    const { DIFFUSION_RATE, deltaX, deltaT } = constants;
+    const { deltaX, deltaT } = constants;
+    const { DIFFUSION_RATE } = DiffParams;
 
     diffusionWorker.postMessage({
         concentration1,
@@ -61,7 +45,7 @@ const requestDiffusionCalculation = (concentration1) => {
         deltaX,
         deltaT,
         method: constants.method,
-        timeLapse,
+        timeLapse: constants.timeLapse,
     });
 };
 

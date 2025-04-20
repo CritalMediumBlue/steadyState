@@ -88,3 +88,24 @@ export function thomasAlgorithm(
         solution[i] = modifiedRightHandSide[i] - modifiedUpperDiagonal[i] * solution[i+1];
     }
 }
+
+
+/**
+ * Calculates the maximum allowable time step (Δt) for stability
+ * using the CFL (Courant–Friedrichs–Lewy) condition for
+ * explicit diffusion schemes.
+ *
+ *
+ * @param {number} deltaX - Spatial grid spacing (Δx) [micrometers].
+ * @param {number} diffusionRate - Diffusion coefficient (D) [micrometers^2/s].
+ * @param {number} dimensions - Number of spatial dimensions.
+ * @returns {number} The maximum stable time step (Δt) that satisfies
+ *                   the CFL stability criterion. [seconds].
+ */
+export function CFLCondition(deltaX, diffusionRate, dimensions) {
+    const maxDelT = deltaX * deltaX / (2 * diffusionRate * dimensions);
+    
+    // Return the maximum allowed time step
+    return maxDelT;
+}
+

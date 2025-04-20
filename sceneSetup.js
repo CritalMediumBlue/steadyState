@@ -1,7 +1,7 @@
 // Import necessary modules from Three.js
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { CONFIG } from './config.js';
+import { Scene } from './config.js';
 import { constants } from './state.js';
 
 /**
@@ -28,7 +28,7 @@ export function setupScene() {
  */
 function initializeScene() {
     const scene = new THREE.Scene();
-    scene.fog = new THREE.Fog(CONFIG.SCENE.FOG_COLOR, CONFIG.SCENE.FOG_NEAR, CONFIG.SCENE.FOG_FAR);
+    scene.fog = new THREE.Fog(Scene.FOG_COLOR, Scene.FOG_NEAR, Scene.FOG_FAR);
     return scene;
 }
 
@@ -38,20 +38,20 @@ function initializeScene() {
  */
 function initializeCamera() {
     const camera = new THREE.PerspectiveCamera(
-        CONFIG.SCENE.CAMERA_FOV,
+        Scene.CAMERA_FOV,
         window.innerWidth / window.innerHeight,
-        CONFIG.SCENE.CAMERA_NEAR,
-        CONFIG.SCENE.CAMERA_FAR
+        Scene.CAMERA_NEAR,
+        Scene.CAMERA_FAR
     );
     camera.position.set(
-        CONFIG.SCENE.CAMERA_POSITION.x,
-        CONFIG.SCENE.CAMERA_POSITION.y,
-        CONFIG.SCENE.CAMERA_POSITION.z
+        Scene.CAMERA_POSITION.x,
+        Scene.CAMERA_POSITION.y,
+        Scene.CAMERA_POSITION.z
     );
     camera.lookAt(
-        CONFIG.SCENE.CAMERA_LOOKAT.x,
-        CONFIG.SCENE.CAMERA_LOOKAT.y,
-        CONFIG.SCENE.CAMERA_LOOKAT.z
+        Scene.CAMERA_LOOKAT.x,
+        Scene.CAMERA_LOOKAT.y,
+        Scene.CAMERA_LOOKAT.z
     );
     return camera;
 }
@@ -77,12 +77,12 @@ function initializeControls(camera, renderer) {
     controls.enableDamping = false; // Disable damping for immediate response
     controls.autoRotate = false; // Disable automatic rotation
     controls.screenSpacePanning = true; // Allow panning in screen space
-    controls.maxDistance = CONFIG.SCENE.CONTROLS_MAX_DISTANCE; // Set maximum zoom-out distance
-    controls.minDistance = CONFIG.SCENE.CONTROLS_MIN_DISTANCE; // Set minimum zoom-in distance
+    controls.maxDistance = Scene.CONTROLS_MAX_DISTANCE; // Set maximum zoom-out distance
+    controls.minDistance = Scene.CONTROLS_MIN_DISTANCE; // Set minimum zoom-in distance
     controls.target.set(
-        CONFIG.SCENE.CAMERA_LOOKAT.x,
-        CONFIG.SCENE.CAMERA_LOOKAT.y,
-        CONFIG.SCENE.CAMERA_LOOKAT.z
+        Scene.CAMERA_LOOKAT.x,
+        Scene.CAMERA_LOOKAT.y,
+        Scene.CAMERA_LOOKAT.z
     );
     return controls;
 }

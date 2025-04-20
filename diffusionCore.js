@@ -15,6 +15,7 @@
  */
 
 import { thomasAlgorithm } from "./utils.js";
+import { DiffParams } from "./config.js";
 
 // ============================================================================
 // CONSTANTS
@@ -25,14 +26,14 @@ import { thomasAlgorithm } from "./utils.js";
  * Higher values make sources/sinks have stronger effects on concentration changes.
  * @constant {number}
  */
-const SCALE_SINKS_AND_SOURCES = 200;
+const SCALE_SINKS_AND_SOURCES = DiffParams.SCALE_SINKS_AND_SOURCES;
 
 /**
  * Half-saturation constant for Michaelis-Menten kinetics used in sink terms.
  * Represents the concentration at which the reaction rate is half of its maximum.
  * @constant {number}
  */
-const HALF_SATURATION_CONSTANT = 0.5;
+const HALF_SATURATION_CONSTANT = DiffParams.HALF_SATURATION_CONSTANT;
 
 // ============================================================================
 // HELPER FUNCTIONS

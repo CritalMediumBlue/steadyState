@@ -1,0 +1,10 @@
+Documentation/*.aux
+Documentation/*.fdb_latexmk
+Documentation/*.fls
+Documentation/*.log
+Documentation/*.nav
+Documentation/*.out
+Documentation/*.snm
+Documentation/*.synctex.gz
+Documentation/*.toc
+Documentation/*.vrb
