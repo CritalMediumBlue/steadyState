@@ -2,12 +2,28 @@ import { solveADI, solveFTCS } from "./diffusionCore.js";
 import { Grid, DiffParams } from './config.js';
 
 export const dataState = {
+    // Concentration data
     currentConcentrationData: null,
     lastConcentrationData: null,
     lastConcentrationData2: null,
     sources: null,
     sinks: null,
-    currentTimeStep: 0
+    
+    // Simulation state
+    currentTimeStep: 0,
+    steadyStateSteps: [],
+    steadyStateTimes: [],
+    runCount: 0,
+    maxRuns: 500,
+    init: false,
+    
+    // Time calculation properties
+    timeLapse: 1, // Default time lapse factor
+    method: 'ADI', // Default simulation method
+    
+    // Additional simulation variables
+    steadyState: false,
+    time0: 0
 };
 
 export const initArrays = () => {

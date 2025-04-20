@@ -13,21 +13,47 @@ self.onmessage = function(e) {
         timeLapse        
     } = e.data;
     
-    try {
-        // Directly call the appropriate solver
-        const results = method === "FTCS" 
-            ? solveFTCS(concentration1, sources, sinks, DIFFUSION_RATE, deltaX, timeLapse, deltaT)
-            : solveADI(concentration1, sources, sinks, DIFFUSION_RATE, deltaX, timeLapse);
+    // Perform diffusion calculation
+    const results = diffusionCore(
+        concentration1, 
+        sources, 
+        sinks, 
+        DIFFUSION_RATE,
+        deltaX,
+        deltaT,
+        method,
+        timeLapse
+    );
 
-        // Send result back to main thread
-        self.postMessage({
-            currentConcentrationData: results.currentConcentrationData,
-            steadyState: results.steadyState,
-        });
-    } catch (error) {
-        // Send error back to main thread
-        self.postMessage({ error: error.message });
-    }
+   
+
+    
+    // Send result back to main thread
+    self.postMessage({
+        currentConcentrationData: results.currentConcentrationData,
+        steadyState: results.steadyState,
+        
+    });
 };
 
 
+function diffusionCore(
+    concentrationData, 
+    sources, 
+    sinks, 
+    diffusionRate, 
+    deltaX, 
+    deltaT, 
+    method,
+    timeLapse
+) {
+    // Select the appropriate solver based on the method parameter
+    switch (method) {
+        case "FTCS":
+            return solveFTCS(concentrationData, sources, sinks, diffusionRate, deltaX, timeLapse, deltaT);
+        case "ADI":
+            return solveADI(concentrationData, sources, sinks, diffusionRate, deltaX, timeLapse);
+        default:
+            throw new Error(`Unknown diffusion method: ${method}. Supported methods are "FTCS" and "ADI".`);
+    }
+}

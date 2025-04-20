@@ -1,7 +1,7 @@
 import { CFLCondition } from './utils.js';
 
 // Scene configuration
-export const Scene = {
+export const SceneConf = {
     FOG_COLOR: 0x000000,
     FOG_NEAR:   10,
     FOG_FAR:    150,
@@ -43,7 +43,7 @@ export const DiffParams = {
     STEPS_PER_SECOND: null, // Will be calculated
     
     // Simulation parameters
-    METHOD: "FTCS", // Default method
+    METHOD: "ADI", // Default method
     
     // Reaction parameters
     SCALE_SINKS_AND_SOURCES: 200,

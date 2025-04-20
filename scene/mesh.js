@@ -49,7 +49,6 @@ const updateMeshAttributes = (mesh) => {
  * Updates a surface mesh based on concentration data
  * @param {THREE.Mesh} mesh - The Three.js mesh to update
  * @param {Float32Array} concentrationData - Array of concentration values
- * @returns {boolean} True if processing should stop due to errors, false otherwise
  */
 export const updateSurfaceMesh = (mesh, concentrationData, width, height) => {
     const positions = mesh.geometry.attributes.position.array;

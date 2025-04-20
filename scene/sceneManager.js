@@ -1,8 +1,10 @@
 import * as THREE from 'three';
-import { Scene, Grid } from './config.js';
+import { SceneConf, Grid } from '../config.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { updateSurfaceMesh } from './mesh.js';
+import { updateLoggsOverlay } from './overlay.js';
 
-export const sceneState = {
+export const scene = {
     scene: null,
     camera: null,
     renderer: null,
@@ -15,48 +17,72 @@ export const sceneState = {
  */
 export const setupNewScene = () => {
     const setup = setupScene();
-    Object.assign(sceneState, setup);
-    document.getElementById('scene-container').appendChild(sceneState.renderer.domElement);
+    Object.assign(scene, setup);
+    document.getElementById('scene-container').appendChild(scene.renderer.domElement);
 };
 
+export const updateScene = (dataState) => {
+    const { currentConcentrationData, currentTimeStep, 
+        steadyStateTimes, steadyStateSteps, runCount, maxRuns,
+        timeLapse, method
+     } = dataState;
+    updateSurfaceMesh(
+        scene.surfaceMesh,
+        currentConcentrationData,
+        scene.WIDTH,
+        scene.HEIGHT
+    );
 
+    updateLoggsOverlay({
+                currentConcentrationData: currentConcentrationData,
+                currentTimeStep: currentTimeStep,
+                runCount,
+                maxRuns,
+                steadyStateTimes,
+                steadyStateSteps,
+                timeLapse,
+                method
+            });
+
+    scene.renderer.render(scene.scene, scene.camera);
+}
 
 const setupScene = () => {
     const scene = new THREE.Scene();
-    scene.fog = new THREE.Fog(Scene.FOG_COLOR, Scene.FOG_NEAR, Scene.FOG_FAR);
+    scene.fog = new THREE.Fog(SceneConf.FOG_COLOR, SceneConf.FOG_NEAR, SceneConf.FOG_FAR);
 
     const WIDTH = Grid.WIDTH;
     const HEIGHT = Grid.HEIGHT;
 
     // Create a camera
     const camera = new THREE.PerspectiveCamera(
-        Scene.CAMERA_FOV, 
+        SceneConf.CAMERA_FOV, 
         window.innerWidth / window.innerHeight, 
-        Scene.CAMERA_NEAR, 
-        Scene.CAMERA_FAR
+        SceneConf.CAMERA_NEAR, 
+        SceneConf.CAMERA_FAR
     );
 
     camera.position.set(
-        Scene.CAMERA_POSITION.x, 
-        Scene.CAMERA_POSITION.y, 
-        Scene.CAMERA_POSITION.z
+        SceneConf.CAMERA_POSITION.x, 
+        SceneConf.CAMERA_POSITION.y, 
+        SceneConf.CAMERA_POSITION.z
     );
 
     camera.lookAt(
-        Scene.CAMERA_LOOKAT.x, 
-        Scene.CAMERA_LOOKAT.y, 
-        Scene.CAMERA_LOOKAT.z
+        SceneConf.CAMERA_LOOKAT.x, 
+        SceneConf.CAMERA_LOOKAT.y, 
+        SceneConf.CAMERA_LOOKAT.z
     );
 
     // Create a renderer
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setClearColor(Scene.FOG_COLOR);
+    renderer.setClearColor(SceneConf.FOG_COLOR);
 
     // Create orbit controls
     const controls = new OrbitControls(camera, renderer.domElement);
-    controls.maxDistance = Scene.CONTROLS_MAX_DISTANCE;
-    controls.minDistance = Scene.CONTROLS_MIN_DISTANCE;
+    controls.maxDistance = SceneConf.CONTROLS_MAX_DISTANCE;
+    controls.minDistance = SceneConf.CONTROLS_MIN_DISTANCE;
 
     // Create a surface mesh
     const geometry = new THREE.PlaneGeometry(WIDTH, HEIGHT, WIDTH - 1, HEIGHT - 1);
