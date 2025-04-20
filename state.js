@@ -24,18 +24,6 @@ export const dataState = {
     
 };
 
-export const constants = {
-    GRID: Grid,
-    DIFFUSION_RATE: DiffParams.DIFFUSION_RATE, // micrometers squared per seconds
-    deltaX: DiffParams.DELTA_X, // micrometers
-    deltaT: DiffParams.DELTA_T, // seconds
-    numberOfStepsPerSecond: DiffParams.STEPS_PER_SECOND, // steps per second
-    diffSourceAndSinkRate: null, // micrometers squared per seconds
-    method: DiffParams.METHOD,
-    parallelization: DiffParams.PARALLELIZATION,
-    timeLapse: DiffParams.TIME_LAPSE
-};
-
 export const initArrays = () => {
     const gridSize = Grid.WIDTH * Grid.HEIGHT;
 
@@ -90,10 +78,10 @@ export const initArrays = () => {
         sources,
         emptyArray,
         emptyArray,
-        constants,
+        DiffParams,
         smoothFactor,
-        constants.deltaX,
-        constants.deltaT,
+        DiffParams.DELTA_X,
+        DiffParams.DELTA_T,
         "FTCS",
         1
     );
@@ -104,10 +92,10 @@ export const initArrays = () => {
         sinks,
         emptyArray,
         emptyArray,
-        constants,
+        DiffParams,
         smoothFactor,
-        constants.deltaX,
-        constants.deltaT,
+        DiffParams.DELTA_X,
+        DiffParams.DELTA_T,
         "FTCS",
         1
     );
@@ -127,7 +115,4 @@ export const initArrays = () => {
         dataState.sinks[i * Grid.WIDTH + (Grid.WIDTH - 1)] = 0;
     }
         
-
-    console.log(dataState.sinks.reduce((acc, value) => acc + value, 0)); 
-    console.log(dataState.sources.reduce((acc, value) => acc + value, 0));
 };

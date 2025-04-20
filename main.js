@@ -1,11 +1,11 @@
 // Import necessary modules and functions
 import { setupNewScene } from './sceneManager.js';
 import { updateSurfaceMesh } from './meshUpdater.js';
-import { updateLoggsOverlay, setOverlayData } from './overlayManager.js';
-import { sceneState, animationState, dataState, constants } from './state.js';
+import { updateLoggsOverlay } from './overlayManager.js';
+import { sceneState, animationState, dataState } from './state.js';
 import { diffusion } from './diffusion.js';
 import { initArrays } from './state.js';
-import { DiffParams, DELTA_T } from './config.js';
+import { DiffParams } from './config.js';
 
 // Global variables and constants
 export let stop = false; // Flag to stop the simulation
@@ -17,8 +17,8 @@ let maxRuns = 500; // Maximum number of runs (default)
 let autoRestart = true; // Flag to control automatic restarting
 
 // Log calculated constants
-console.log("numberOfStepsPerSecond", constants.numberOfStepsPerSecond);
-console.log("deltaT", constants.deltaT);
+console.log("numberOfStepsPerSecond", DiffParams.STEPS_PER_SECOND);
+console.log("deltaT", DiffParams.DELTA_T);
 
 // Web Worker for diffusion calculations
 const diffusionWorker = new Worker('diffusionWorker.js', { type: 'module' });
@@ -33,19 +33,18 @@ const requestDiffusionCalculation = (concentration1) => {
 
     isWorkerBusy = true;
     const { sources, sinks } = dataState;
-    const { deltaX, deltaT } = constants;
-    const { DIFFUSION_RATE } = DiffParams;
+    const { DELTA_X: deltaX, DELTA_T: deltaT, DIFFUSION_RATE } = DiffParams;
 
     diffusionWorker.postMessage({
         concentration1,
         sources,
         sinks,
-        constants,
+        DiffParams,
         DIFFUSION_RATE,
         deltaX,
         deltaT,
-        method: constants.method,
-        timeLapse: constants.timeLapse,
+        method: DiffParams.METHOD,
+        timeLapse: DiffParams.TIME_LAPSE,
     });
 };
 
@@ -73,17 +72,21 @@ const updateScene = () => {
     stop = updateSurfaceMesh(sceneState.surfaceMesh, dataState.currentConcentrationData);
 
     // Update overlay with current run data
-    setOverlayData(runCount, steadyStateTimes, steadyStateSteps, maxRuns, autoRestart);
-    updateLoggsOverlay();
+    updateLoggsOverlay({
+        currentTimeStep: animationState.currentTimeStep,
+        timeLapse: DiffParams.TIME_LAPSE,
+        method: DiffParams.METHOD,
+        runCount,
+        maxRuns,
+        steadyStateTimes,
+        steadyStateSteps,
+        autoRestart
+    });
 
     if (!steadyState1 && !stop) {
-        if (constants.parallelization) {
-            dataState.lastConcentrationData = dataState.currentConcentrationData;
-            requestDiffusionCalculation(dataState.currentConcentrationData);
-        } else {
-            dataState.lastConcentrationData = dataState.currentConcentrationData;
-            [dataState.currentConcentrationData, steadyState1] = diffusion(dataState.currentConcentrationData, constants.method,1);
-        }
+        dataState.lastConcentrationData = dataState.currentConcentrationData;
+        requestDiffusionCalculation(dataState.currentConcentrationData);
+         
     } else if (init && steadyState1) {
         handleSteadyState();
     }
@@ -131,8 +134,8 @@ const finalizeSimulation = () => {
     console.log(steadyStateTimes);
     console.log(steadyStateSteps);
 
-    constants.method = constants.method === "FTCS" ? "ADI" : "FTCS";
-    console.log("Switching method to", constants.method);
+    DiffParams.METHOD = DiffParams.METHOD === "FTCS" ? "ADI" : "FTCS";
+    console.log("Switching method to", DiffParams.METHOD);
 
     runCount = 0;
     steadyState1 = false;
@@ -145,17 +148,6 @@ const finalizeSimulation = () => {
         console.log("Stopping simulation after 5 runs.");
         stop = true;
     }
-};
-
-
-
-/**
- * Set the maximum number of runs.
- * @param {number} max - Maximum number of runs to perform.
- */
-export const setMaxRuns = (max) => {
-    maxRuns = max;
-    console.log(`Maximum runs set to: ${max}`);
 };
 
 /**

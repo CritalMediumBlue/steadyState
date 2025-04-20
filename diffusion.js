@@ -1,5 +1,6 @@
-import { dataState, constants, animationState } from './state.js';
+import { dataState, animationState } from './state.js';
 import { diffusionCore } from './diffusionCore.js';
+import { DiffParams } from './config.js';
 
 /**
  * Perform diffusion simulation step
@@ -14,16 +15,15 @@ export const diffusion = (concentration,method,timeLapse) => {
 
     const {
         DIFFUSION_RATE,
-        deltaX,
-        deltaT,
-        
-    } = constants;
+        DELTA_X: deltaX,
+        DELTA_T: deltaT
+    } = DiffParams;
 
     const result = diffusionCore(
         concentration, 
         sources, 
         sinks, 
-        constants,
+        DiffParams,
         DIFFUSION_RATE,
         deltaX,
         deltaT,

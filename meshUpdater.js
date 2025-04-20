@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { calculateColor } from './colorUtils.js';
-import { dataState, constants } from './state.js';
+import { dataState } from './state.js';
+import { Grid } from './config.js';
 
 // Global flag to indicate if processing should stop due to errors
 let shouldStopProcessing = false;
@@ -61,9 +62,9 @@ export const updateSurfaceMesh = (mesh, concentrationData) => {
     const positions = mesh.geometry.attributes.position.array;
     
     // Process each vertex in the grid
-    for (let y = 0; y < constants.GRID.HEIGHT; y++) {
-        for (let x = 0; x < constants.GRID.WIDTH; x++) {
-            const vertexIndex = y * constants.GRID.WIDTH + x;
+    for (let y = 0; y < Grid.HEIGHT; y++) {
+        for (let x = 0; x < Grid.WIDTH; x++) {
+            const vertexIndex = y * Grid.WIDTH + x;
             const currentConcentration = concentrationData[vertexIndex];
             
             // Update vertex height

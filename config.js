@@ -43,8 +43,7 @@ export const DiffParams = {
     STEPS_PER_SECOND: null, // Will be calculated
     
     // Simulation parameters
-    METHOD: "ADI", // Default method
-    PARALLELIZATION: true, // Enable parallelization
+    METHOD: "FTCS", // Default method
     
     // Reaction parameters
     SCALE_SINKS_AND_SOURCES: 200,
@@ -59,5 +58,4 @@ DiffParams.DELTA_T = CFLCondition(
 );
 DiffParams.STEPS_PER_SECOND = Math.round(1 / DiffParams.DELTA_T);
 
-// For backward compatibility (fix typo)
-export const DELTA_T = DiffParams.DELTA_T;
+

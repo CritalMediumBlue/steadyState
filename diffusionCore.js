@@ -15,7 +15,7 @@
  */
 
 import { thomasAlgorithm } from "./utils.js";
-import { DiffParams } from "./config.js";
+import { DiffParams, Grid } from "./config.js";
 
 // ============================================================================
 // CONSTANTS
@@ -101,14 +101,14 @@ function calculateMichaelisMentenTerm(concentration) {
  * @param {Float32Array} concentrationData - Current concentration data
  * @param {Float32Array} sources - Source terms (adding concentration)
  * @param {Float32Array} sinks - Sink terms (removing concentration)
- * @param {Object} constants - Simulation constants
+ * @param {Object} DiffParams - Simulation constants
  * @param {number} diffusionRate - Diffusion coefficient (D)
  * @param {number} deltaX - Spatial step size
  * @param {number} deltaT - Time step size
  * @returns {Object} Updated concentration data
  */
-function solveFTCS(concentrationData, sources, sinks, constants, diffusionRate, deltaX,timeLapse, deltaT) {
-    const { WIDTH, HEIGHT } = constants.GRID;
+function solveFTCS(concentrationData, sources, sinks, DiffParams, diffusionRate, deltaX,timeLapse, deltaT) {
+    const { WIDTH, HEIGHT } = Grid;
     const totalNumberOfSteps = Math.round(timeLapse / deltaT);
     const scaleSinksAndSources = SCALE_SINKS_AND_SOURCES * timeLapse;
     
@@ -176,14 +176,14 @@ function solveFTCS(concentrationData, sources, sinks, constants, diffusionRate, 
  * @param {Float32Array} concentrationData - Current concentration data
  * @param {Float32Array} sources - Source terms (adding concentration)
  * @param {Float32Array} sinks - Sink terms (removing concentration)
- * @param {Object} constants - Simulation constants
+ * @param {Object} DiffParams - Simulation constants
  * @param {number} diffusionRate - Diffusion coefficient (D)
  * @param {number} deltaX - Spatial step size
  * @param {number} timeLapse - Time lapse for the simulation in seconds
  * @returns {Object} Updated concentration data
  */
-function solveADI(concentrationData, sources, sinks, constants, diffusionRate, deltaX, timeLapse) {
-    const { WIDTH, HEIGHT } = constants.GRID;
+function solveADI(concentrationData, sources, sinks, DiffParams, diffusionRate, deltaX, timeLapse) {
+    const { WIDTH, HEIGHT } = Grid;
     
     // ADI uses a fixed time step for stability and accuracy
     const timeStep = 1; // one second is the maximum time step
@@ -349,7 +349,7 @@ function solveADI(concentrationData, sources, sinks, constants, diffusionRate, d
  * @param {Float32Array} concentrationData - Current concentration data
  * @param {Float32Array} sources - Source terms (adding concentration)
  * @param {Float32Array} sinks - Sink terms (removing concentration)
- * @param {Object} constants - Simulation constants including grid dimensions
+ * @param {Object} DiffParams - Simulation constants including grid dimensions
  * @param {number} diffusionRate - Diffusion coefficient (D)
  * @param {number} deltaX - Spatial step size
  * @param {number} deltaT - Time step size
@@ -361,7 +361,7 @@ export function diffusionCore(
     concentrationData, 
     sources, 
     sinks, 
-    constants, 
+    DiffParams, 
     diffusionRate, 
     deltaX, 
     deltaT, 
@@ -371,9 +371,9 @@ export function diffusionCore(
     // Select the appropriate solver based on the method parameter
     switch (method) {
         case "FTCS":
-            return solveFTCS(concentrationData, sources, sinks, constants, diffusionRate, deltaX, timeLapse, deltaT);
+            return solveFTCS(concentrationData, sources, sinks, DiffParams, diffusionRate, deltaX, timeLapse, deltaT);
         case "ADI":
-            return solveADI(concentrationData, sources, sinks, constants, diffusionRate, deltaX, timeLapse);
+            return solveADI(concentrationData, sources, sinks, DiffParams, diffusionRate, deltaX, timeLapse);
         default:
             throw new Error(`Unknown diffusion method: ${method}. Supported methods are "FTCS" and "ADI".`);
     }

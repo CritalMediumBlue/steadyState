@@ -1,44 +1,34 @@
-// Import necessary modules and shared state
-import { animationState, constants } from './state.js';
-
-// External variables shared with main.js
-// These variables store the state of the simulation and are updated dynamically
-let runCount = 0; // Tracks the current simulation run count
-let steadyStateTimes = []; // Stores the times (in ms) to reach steady state for each run
-let steadyStateSteps = []; // Stores the number of steps to reach steady state for each run
-let maxRuns = Infinity; // Maximum number of simulation runs (default: unlimited)
-let autoRestart = true; // Flag to enable or disable automatic restarting of simulations
-
-/**
- * Updates the external variables shared with main.js.
- * This function allows main.js to provide updated data for the overlay.
- *
- * @param {number} count - Current run count.
- * @param {Array<number>} times - Array of steady state times (in ms).
- * @param {Array<number>} steps - Array of steady state steps.
- * @param {number} [max=Infinity] - Maximum number of runs (default: unlimited).
- * @param {boolean} [auto=true] - Whether automatic restarting is enabled (default: true).
- */
-export const setOverlayData = (count, times, steps, max = Infinity, auto = true) => {
-    runCount = count;
-    steadyStateTimes = times;
-    steadyStateSteps = steps;
-    maxRuns = max;
-    autoRestart = auto;
-};
-
 /**
  * Updates the logs overlay with the current simulation state.
  * This function dynamically updates the overlay element with information
  * about the current run, time step, and statistics from previous runs.
+ *
+ * @param {Object} params - Parameters for updating the overlay
+ * @param {number} params.currentTimeStep - Current time step of the simulation
+ * @param {number} params.timeLapse - Time lapse factor
+ * @param {string} params.method - Simulation method
+ * @param {number} params.runCount - Current run count
+ * @param {number} params.maxRuns - Maximum number of runs
+ * @param {Array<number>} params.steadyStateTimes - Array of steady state times
+ * @param {Array<number>} params.steadyStateSteps - Array of steady state steps
+ * @param {boolean} params.autoRestart - Whether automatic restarting is enabled
  */
-export const updateLoggsOverlay = () => {
+export const updateLoggsOverlay = ({
+    currentTimeStep, 
+    timeLapse, 
+    method, 
+    runCount,
+    maxRuns,
+    steadyStateTimes,
+    steadyStateSteps,
+    autoRestart
+}) => {
     const overlay = document.getElementById("text-overlay");
 
     if (!overlay) return; // Exit if the overlay element is not found
 
     // Calculate elapsed time in hours, minutes, and seconds
-    const timeInMinutes = animationState.currentTimeStep * (1 / 60)* constants.timeLapse;
+    const timeInMinutes = currentTimeStep * (1 / 60) * timeLapse;
     const hours = Math.floor(timeInMinutes / 60);
     const minutes = Math.floor(timeInMinutes % 60);
     const seconds = Math.floor((timeInMinutes * 60) % 60);
@@ -46,13 +36,12 @@ export const updateLoggsOverlay = () => {
     // Build the overlay text with current run information
     let overlayText = `Run: ${runCount + 1}${' / ' + maxRuns}
 ` +
-                      `Step: ${animationState.currentTimeStep}
+                      `Step: ${currentTimeStep}
 ` +
                       `Time: ${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}
 ` +
-                      `Method: ${constants.method}
-` +
-                      `Parallelization: ${constants.parallelization}`;
+                      `Method: ${method}
+` 
 
     // Add information about previous steady state times if available
     if (steadyStateTimes.length > 0) {
