@@ -1,6 +1,5 @@
 
-// Global flag to indicate if processing should stop due to errors
-let shouldStopProcessing = false;
+
 
 // Constants for height calculations
 const BASE_HEIGHT_OFFSET = -11;
@@ -17,7 +16,6 @@ const calculateVertexHeight = (concentration, x, y) => {
     // Validate concentration value
     if (isNaN(concentration)) {
         console.warn(`NaN detected in concentration data at (${x},${y})`);
-        shouldStopProcessing = true;
         return 0;
     }
     
@@ -54,7 +52,6 @@ const updateMeshAttributes = (mesh) => {
  * @returns {boolean} True if processing should stop due to errors, false otherwise
  */
 export const updateSurfaceMesh = (mesh, concentrationData, width, height) => {
-    shouldStopProcessing = false; // Reset stop flag for each update
     const positions = mesh.geometry.attributes.position.array;
     
     // Get direct reference to the color buffer
@@ -81,7 +78,6 @@ export const updateSurfaceMesh = (mesh, concentrationData, width, height) => {
     // Finalize mesh updates
     updateMeshAttributes(mesh);
     
-    return shouldStopProcessing;
 };
 
 /**

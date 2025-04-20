@@ -11,7 +11,6 @@
  * @param {number} params.maxRuns - Maximum number of runs
  * @param {Array<number>} params.steadyStateTimes - Array of steady state times
  * @param {Array<number>} params.steadyStateSteps - Array of steady state steps
- * @param {boolean} params.autoRestart - Whether automatic restarting is enabled
  */
 export const updateLoggsOverlay = ({
     currentTimeStep, 
@@ -21,7 +20,6 @@ export const updateLoggsOverlay = ({
     maxRuns,
     steadyStateTimes,
     steadyStateSteps,
-    autoRestart
 }) => {
     const overlay = document.getElementById("text-overlay");
 

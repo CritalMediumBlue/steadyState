@@ -101,13 +101,15 @@ function calculateMichaelisMentenTerm(concentration) {
  * @param {Float32Array} concentrationData - Current concentration data
  * @param {Float32Array} sources - Source terms (adding concentration)
  * @param {Float32Array} sinks - Sink terms (removing concentration)
- * @param {Object} DiffParams - Simulation constants
  * @param {number} diffusionRate - Diffusion coefficient (D)
  * @param {number} deltaX - Spatial step size
+ * @param {number} timeLapse - Time lapse for the simulation in seconds
  * @param {number} deltaT - Time step size
- * @returns {Object} Updated concentration data
+ * @returns {Object} Object containing the updated concentration data and steady state status
+ * @returns {Float32Array} currentConcentrationData - The updated concentration values
+ * @returns {boolean} steadyState - Whether the system has reached steady state
  */
-function solveFTCS(concentrationData, sources, sinks, DiffParams, diffusionRate, deltaX,timeLapse, deltaT) {
+export function solveFTCS(concentrationData, sources, sinks, diffusionRate, deltaX,timeLapse, deltaT) {
     const { WIDTH, HEIGHT } = Grid;
     const totalNumberOfSteps = Math.round(timeLapse / deltaT);
     const scaleSinksAndSources = SCALE_SINKS_AND_SOURCES * timeLapse;
@@ -176,13 +178,14 @@ function solveFTCS(concentrationData, sources, sinks, DiffParams, diffusionRate,
  * @param {Float32Array} concentrationData - Current concentration data
  * @param {Float32Array} sources - Source terms (adding concentration)
  * @param {Float32Array} sinks - Sink terms (removing concentration)
- * @param {Object} DiffParams - Simulation constants
  * @param {number} diffusionRate - Diffusion coefficient (D)
  * @param {number} deltaX - Spatial step size
  * @param {number} timeLapse - Time lapse for the simulation in seconds
- * @returns {Object} Updated concentration data
+ * @returns {Object} Object containing the updated concentration data and steady state status
+ * @returns {Float32Array} currentConcentrationData - The updated concentration values
+ * @returns {boolean} steadyState - Whether the system has reached steady state
  */
-function solveADI(concentrationData, sources, sinks, DiffParams, diffusionRate, deltaX, timeLapse) {
+export function solveADI(concentrationData, sources, sinks, diffusionRate, deltaX, timeLapse) {
     const { WIDTH, HEIGHT } = Grid;
     
     // ADI uses a fixed time step for stability and accuracy
@@ -338,52 +341,14 @@ function solveADI(concentrationData, sources, sinks, DiffParams, diffusionRate, 
     };
 }
 
-// ============================================================================
-// MAIN EXPORT FUNCTION
-// ============================================================================
+
 
 /**
- * Main diffusion simulation function that selects and applies the appropriate
- * numerical method (FTCS or ADI) to solve the diffusion equation.
- * 
- * @param {Float32Array} concentrationData - Current concentration data
- * @param {Float32Array} sources - Source terms (adding concentration)
- * @param {Float32Array} sinks - Sink terms (removing concentration)
- * @param {Object} DiffParams - Simulation constants including grid dimensions
- * @param {number} diffusionRate - Diffusion coefficient (D)
- * @param {number} deltaX - Spatial step size
- * @param {number} deltaT - Time step size
- * @param {string} method - Numerical method to use ("FTCS" or "ADI")
- * @param {number} timeLapse - Time lapse for the simulation in seconds
- * @returns {Object} Updated concentration data
- */
-export function diffusionCore(
-    concentrationData, 
-    sources, 
-    sinks, 
-    DiffParams, 
-    diffusionRate, 
-    deltaX, 
-    deltaT, 
-    method,
-    timeLapse
-) {
-    // Select the appropriate solver based on the method parameter
-    switch (method) {
-        case "FTCS":
-            return solveFTCS(concentrationData, sources, sinks, DiffParams, diffusionRate, deltaX, timeLapse, deltaT);
-        case "ADI":
-            return solveADI(concentrationData, sources, sinks, DiffParams, diffusionRate, deltaX, timeLapse);
-        default:
-            throw new Error(`Unknown diffusion method: ${method}. Supported methods are "FTCS" and "ADI".`);
-    }
-}
-
-/**
- * Check if the system has reached a steady state.
- * @param {Array} previous - Previous concentration data.
- * @param {Array} next - Current concentration data.
- * @returns {boolean} - True if steady state is reached, false otherwise.
+ * Check if the system has reached a steady state by comparing current concentration
+ * with the initial concentration data.
+ * @param {Float32Array} previous - Current concentration data
+ * @param {Float32Array} next - Initial concentration data
+ * @returns {boolean} - True if steady state is reached (minimal changes), false otherwise
  */
 const checkForSteadyState = (previous, next) => {
     const threshold = 0.001; // Threshold for steady state

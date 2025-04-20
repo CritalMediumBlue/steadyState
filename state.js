@@ -1,4 +1,4 @@
-import { diffusionCore } from "./diffusionCore.js";
+import { solveADI, solveFTCS } from "./diffusionCore.js";
 import { Grid, DiffParams } from './config.js';
 
 export const dataState = {
@@ -58,30 +58,28 @@ export const initArrays = () => {
     const emptyArray = new Float32Array(gridSize);
     emptyArray.fill(0);
    
-    const result = diffusionCore(
+    const result = solveFTCS(
         sources,
         emptyArray,
         emptyArray,
-        DiffParams,
         smoothFactor,
         DiffParams.DELTA_X,
-        DiffParams.DELTA_T,
-        "FTCS",
-        1
+        1,
+        DiffParams.DELTA_T
+        
     );
     dataState.sources = result.currentConcentrationData;
 
     // diffuse sinks
-    const result2 = diffusionCore(
+    const result2 = solveFTCS(
         sinks,
         emptyArray,
         emptyArray,
-        DiffParams,
         smoothFactor,
         DiffParams.DELTA_X,
-        DiffParams.DELTA_T,
-        "FTCS",
-        1
+        1,
+        DiffParams.DELTA_T
+        
     );
     dataState.sinks = result2.currentConcentrationData;
 

@@ -1,7 +1,5 @@
-import { initArrays } from './state.js';
 import * as THREE from 'three';
-import { Scene } from './config.js';
-import { Grid } from './config.js';
+import { Scene, Grid } from './config.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
 export const sceneState = {
@@ -19,9 +17,6 @@ export const setupNewScene = () => {
     const setup = setupScene();
     Object.assign(sceneState, setup);
     document.getElementById('scene-container').appendChild(sceneState.renderer.domElement);
-    
-    // Initialize simulation arrays
-    initArrays();
 };
 
 

@@ -2,8 +2,7 @@
 import { setupNewScene, sceneState } from './sceneManager.js';
 import { updateSurfaceMesh } from './meshUpdater.js';
 import { updateLoggsOverlay } from './overlayManager.js';
-import { dataState } from './state.js';
-import { initArrays } from './state.js';
+import { dataState, initArrays } from './state.js';
 import { DiffParams, Grid } from './config.js';
 
 // Global variables and constants
@@ -11,14 +10,13 @@ export let stop = false; // Flag to stop the simulation
 let runCount = 0; // Counter for the number of simulation runs
 let steadyStateTimes = []; // Array to store times to reach steady state
 let steadyStateSteps = []; // Array to store steps to reach steady state
-let counter = 0; // Counter for method switching
 let maxRuns = 500; // Maximum number of runs (default)
-let autoRestart = true; // Flag to control automatic restarting
 
 // Log calculated constants
 console.log("numberOfStepsPerSecond", DiffParams.STEPS_PER_SECOND);
 console.log("deltaT", DiffParams.DELTA_T);
-
+const MAX_WORKERS = navigator.hardwareConcurrency || 4;
+console.log("Max Workers", MAX_WORKERS);
 // Web Worker for diffusion calculations
 const diffusionWorker = new Worker('diffusionWorker.js', { type: 'module' });
 let isWorkerBusy = false; // Flag to track if the worker is busy
@@ -68,7 +66,7 @@ diffusionWorker.onerror = function(error) {
  */
 const updateScene = () => {
     // Update the surface mesh with the current concentration data
-    stop = updateSurfaceMesh(sceneState.surfaceMesh, dataState.currentConcentrationData, Grid.WIDTH, Grid.HEIGHT);
+    updateSurfaceMesh(sceneState.surfaceMesh, dataState.currentConcentrationData, Grid.WIDTH, Grid.HEIGHT);
 
     // Update overlay with current run data
     updateLoggsOverlay({
@@ -79,7 +77,6 @@ const updateScene = () => {
         maxRuns,
         steadyStateTimes,
         steadyStateSteps,
-        autoRestart
     });
 
     if (!steadyState1 && !stop) {
@@ -111,10 +108,7 @@ const handleSteadyState = () => {
  * Reset the simulation for a new run.
  */
 const resetSimulation = () => {
-    if (runCount >= maxRuns || !autoRestart) {
-        finalizeSimulation();
-        return;
-    }
+  
 
     dataState.currentTimeStep = 0; // Reset animation state
     initArrays(); // Reinitialize arrays with new random sources and sinks
@@ -125,38 +119,9 @@ const resetSimulation = () => {
     time0 = performance.now(); // Record start time for the new run
 };
 
-/**
- * Finalize the simulation after completing all runs.
- */
-const finalizeSimulation = () => {
-    console.log(`Completed ${runCount} runs.`);
-    console.log(steadyStateTimes);
-    console.log(steadyStateSteps);
 
-    DiffParams.METHOD = DiffParams.METHOD === "FTCS" ? "ADI" : "FTCS";
-    console.log("Switching method to", DiffParams.METHOD);
 
-    runCount = 0;
-    steadyState1 = false;
-    steadyStateTimes = [];
-    steadyStateSteps = [];
-    counter++;
 
-    console.log("Counter", counter);
-    if (counter >= 5) {
-        console.log("Stopping simulation after 5 runs.");
-        stop = true;
-    }
-};
-
-/**
- * Toggle automatic restarting.
- * @param {boolean} enabled - Whether automatic restarting is enabled.
- */
-export const setAutoRestart = (enabled) => {
-    autoRestart = enabled;
-    console.log(`Automatic restarting ${enabled ? 'enabled' : 'disabled'}`);
-};
 
 // Animation loop variables
 let init = false;
@@ -193,5 +158,6 @@ window.addEventListener('load', () => {
     steadyStateSteps = [];
 
     setupNewScene();
+    initArrays(); 
     animate();
 });

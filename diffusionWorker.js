@@ -1,4 +1,4 @@
-import { diffusionCore } from './diffusionCore.js';
+import { solveADI, solveFTCS } from './diffusionCore.js';
 
 // Message handler for worker
 self.onmessage = function(e) {
@@ -6,7 +6,6 @@ self.onmessage = function(e) {
         concentration1,
         sources, 
         sinks,
-        DiffParams,
         DIFFUSION_RATE,
         deltaX,
         deltaT,
@@ -14,26 +13,21 @@ self.onmessage = function(e) {
         timeLapse        
     } = e.data;
     
-    // Perform diffusion calculation
-    const result1 = diffusionCore(
-        concentration1, 
-        sources, 
-        sinks, 
-        DiffParams,
-        DIFFUSION_RATE,
-        deltaX,
-        deltaT,
-        method,
-        timeLapse
-    );
+    try {
+        // Directly call the appropriate solver
+        const results = method === "FTCS" 
+            ? solveFTCS(concentration1, sources, sinks, DIFFUSION_RATE, deltaX, timeLapse, deltaT)
+            : solveADI(concentration1, sources, sinks, DIFFUSION_RATE, deltaX, timeLapse);
 
-   
-
-    
-    // Send result back to main thread
-    self.postMessage({
-        currentConcentrationData: result1.currentConcentrationData,
-        steadyState: result1.steadyState,
-        
-    });
+        // Send result back to main thread
+        self.postMessage({
+            currentConcentrationData: results.currentConcentrationData,
+            steadyState: results.steadyState,
+        });
+    } catch (error) {
+        // Send error back to main thread
+        self.postMessage({ error: error.message });
+    }
 };
+
+
