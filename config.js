@@ -23,11 +23,9 @@ export const SceneConf = {
     },
 
     CONTROLS_MAX_DISTANCE: 500,
-    CONTROLS_MIN_DISTANCE: 10
-};
-
-// Grid dimensions
-export const Grid = {
+    CONTROLS_MIN_DISTANCE: 10,
+    
+    // Grid dimensions (previously separate constant)
     WIDTH: 100,
     HEIGHT: 60
 };
@@ -57,5 +55,3 @@ DiffParams.DELTA_T = CFLCondition(
     2
 );
 DiffParams.STEPS_PER_SECOND = Math.round(1 / DiffParams.DELTA_T);
-
-

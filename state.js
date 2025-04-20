@@ -1,5 +1,5 @@
-import { solveADI, solveFTCS } from "./diffusionCore.js";
-import { Grid, DiffParams } from './config.js';
+import { solveFTCS } from "./diffusionCore.js";
+import { DiffParams, SceneConf } from './config.js';
 
 export const dataState = {
     // Concentration data
@@ -27,7 +27,7 @@ export const dataState = {
 };
 
 export const initArrays = () => {
-    const gridSize = Grid.WIDTH * Grid.HEIGHT;
+    const gridSize = SceneConf.WIDTH * SceneConf.HEIGHT;
 
     dataState.currentConcentrationData = new Float32Array(gridSize);
     dataState.lastConcentrationData = new Float32Array(gridSize);
@@ -50,18 +50,18 @@ export const initArrays = () => {
         let pos, row, col;
         // Generate a valid source position
         do {
-            row = Math.floor(Math.random() * (Grid.HEIGHT - 2 * boundaryMargin)) + boundaryMargin;
-            col = Math.floor(Math.random() * (Grid.WIDTH - 2 * boundaryMargin)) + boundaryMargin;
-            pos = row * Grid.WIDTH + col;
+            row = Math.floor(Math.random() * (SceneConf.HEIGHT - 2 * boundaryMargin)) + boundaryMargin;
+            col = Math.floor(Math.random() * (SceneConf.WIDTH - 2 * boundaryMargin)) + boundaryMargin;
+            pos = row * SceneConf.WIDTH + col;
         } while(sourcePositions.has(pos));
         sourcePositions.add(pos);
         sources[pos] = 0.95; // has to be slightly less than the sinks
     
         // Generate a valid sink position
         do {
-            row = Math.floor(Math.random() * (Grid.HEIGHT - 2 * boundaryMargin)) + boundaryMargin;
-            col = Math.floor(Math.random() * (Grid.WIDTH - 2 * boundaryMargin)) + boundaryMargin;
-            pos = row * Grid.WIDTH + col;
+            row = Math.floor(Math.random() * (SceneConf.HEIGHT - 2 * boundaryMargin)) + boundaryMargin;
+            col = Math.floor(Math.random() * (SceneConf.WIDTH - 2 * boundaryMargin)) + boundaryMargin;
+            pos = row * SceneConf.WIDTH + col;
         } while(sinkPositions.has(pos));
         sinkPositions.add(pos);
         sinks[pos] = 1;
@@ -100,16 +100,16 @@ export const initArrays = () => {
     dataState.sinks = result2.currentConcentrationData;
 
     //set boundaries of the sources and sinks to 0
-    for (let i = 0; i < Grid.WIDTH; i++) {
+    for (let i = 0; i < SceneConf.WIDTH; i++) {
         dataState.sources[i] = 0;
         dataState.sinks[i] = 0;
-        dataState.sources[(Grid.HEIGHT - 1) * Grid.WIDTH + i] = 0;
-        dataState.sinks[(Grid.HEIGHT - 1) * Grid.WIDTH + i] = 0;
+        dataState.sources[(SceneConf.HEIGHT - 1) * SceneConf.WIDTH + i] = 0;
+        dataState.sinks[(SceneConf.HEIGHT - 1) * SceneConf.WIDTH + i] = 0;
     }
-    for (let i = 0; i < Grid.HEIGHT; i++) {
-        dataState.sources[i * Grid.WIDTH] = 0;
-        dataState.sinks[i * Grid.WIDTH] = 0;
-        dataState.sources[i * Grid.WIDTH + (Grid.WIDTH - 1)] = 0;
-        dataState.sinks[i * Grid.WIDTH + (Grid.WIDTH - 1)] = 0;
+    for (let i = 0; i < SceneConf.HEIGHT; i++) {
+        dataState.sources[i * SceneConf.WIDTH] = 0;
+        dataState.sinks[i * SceneConf.WIDTH] = 0;
+        dataState.sources[i * SceneConf.WIDTH + (SceneConf.WIDTH - 1)] = 0;
+        dataState.sinks[i * SceneConf.WIDTH + (SceneConf.WIDTH - 1)] = 0;
     }
 };

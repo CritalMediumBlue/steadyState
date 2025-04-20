@@ -1,6 +1,6 @@
 // Import necessary modules and functions
 import { dataState, initArrays } from './state.js';
-import { DiffParams, Grid } from './config.js';
+import { DiffParams } from './config.js';
 
 
 // Web Worker for diffusion calculations
@@ -103,8 +103,6 @@ export const initSimulation = () => {
     dataState.runCount = 0;
     dataState.steadyStateTimes = [];
     dataState.steadyStateSteps = [];
+    resetSimulation();
     
-    initArrays();
-    dataState.time0 = performance.now();
-    dataState.init = true;
 };

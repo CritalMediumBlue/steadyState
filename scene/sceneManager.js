@@ -14,13 +14,20 @@ export const scene = {
 /**
  * Setup new scene and initialize simulation arrays
  */
-export const setupNewScene = (Grid, SceneConf) => {
-    const setup = setupScene(Grid, SceneConf);
+const setupNewScene = (SceneConf) => {
+    const setup = setupScene( SceneConf);
     Object.assign(scene, setup);
     document.getElementById('scene-container').appendChild(scene.renderer.domElement);
 };
 
-export const updateScene = (dataState) => {
+export const updateScene = (dataState, SceneConf) => {
+
+    // check if the scene is initialized, if not, initialize it
+    if (!scene.scene) {
+        setupNewScene(SceneConf);
+    }
+
+  
     
     const { currentConcentrationData, currentTimeStep, 
         steadyStateTimes, steadyStateSteps, runCount, maxRuns,
@@ -47,12 +54,12 @@ export const updateScene = (dataState) => {
     scene.renderer.render(scene.scene, scene.camera);
 }
 
-const setupScene = (Grid, SceneConf) => {
+const setupScene = ( SceneConf) => {
     const scene = new THREE.Scene();
     scene.fog = new THREE.Fog(SceneConf.FOG_COLOR, SceneConf.FOG_NEAR, SceneConf.FOG_FAR);
 
-    const WIDTH = Grid.WIDTH;
-    const HEIGHT = Grid.HEIGHT;
+    const WIDTH = SceneConf.WIDTH;
+    const HEIGHT = SceneConf.HEIGHT;
 
     // Create a camera
     const camera = new THREE.PerspectiveCamera(

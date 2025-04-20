@@ -1,5 +1,5 @@
 // Import necessary modules and functions
-import { setupNewScene, scene,
+import { scene,
     updateScene,
 } from './scene/sceneManager.js';
 import {
@@ -7,7 +7,7 @@ import {
      initSimulation 
      } from './simulation.js';
 import { dataState} from './state.js';
-import { SceneConf, Grid } from './config.js';
+import { SceneConf } from './config.js';
 
 
 /**
@@ -21,14 +21,13 @@ const animate = () => {
 
     scene.animationFrameId = requestAnimationFrame(animate);
 
-    updateSimulation();
-    updateScene(dataState);
+    updateSimulation(dataState);
+    updateScene(dataState,SceneConf);
    
 };
 
 // Initialize the scene and start the animation loop when the page loads
 window.addEventListener('load', () => {
-    setupNewScene(Grid, SceneConf);
     initSimulation();
     animate();
 });

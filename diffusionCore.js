@@ -15,7 +15,7 @@
  */
 
 import { thomasAlgorithm } from "./utils.js";
-import { DiffParams, Grid } from "./config.js";
+import { DiffParams, SceneConf } from "./config.js";
 
 // ============================================================================
 // CONSTANTS
@@ -110,7 +110,7 @@ function calculateMichaelisMentenTerm(concentration) {
  * @returns {boolean} steadyState - Whether the system has reached steady state
  */
 export function solveFTCS(concentrationData, sources, sinks, diffusionRate, deltaX,timeLapse, deltaT) {
-    const { WIDTH, HEIGHT } = Grid;
+    const { WIDTH, HEIGHT } = SceneConf;
     const totalNumberOfSteps = Math.round(timeLapse / deltaT);
     const scaleSinksAndSources = SCALE_SINKS_AND_SOURCES * timeLapse;
     
@@ -186,7 +186,7 @@ export function solveFTCS(concentrationData, sources, sinks, diffusionRate, delt
  * @returns {boolean} steadyState - Whether the system has reached steady state
  */
 export function solveADI(concentrationData, sources, sinks, diffusionRate, deltaX, timeLapse) {
-    const { WIDTH, HEIGHT } = Grid;
+    const { WIDTH, HEIGHT } = SceneConf;
     
     // ADI uses a fixed time step for stability and accuracy
     const timeStep = 1; // one second is the maximum time step
