@@ -1,27 +1,13 @@
 import { diffusionCore } from "./diffusionCore.js";
 import { Grid, DiffParams } from './config.js';
 
-export const sceneState = {
-    scene: null,
-    camera: null,
-    renderer: null,
-    surfaceMesh: null,
-};
-
-export const animationState = {
-    animationFrameId: null,
-    currentTimeStep: 0
-    
-};
-
 export const dataState = {
     currentConcentrationData: null,
     lastConcentrationData: null,
     lastConcentrationData2: null,
-    colors: null,
     sources: null,
     sinks: null,
-    
+    currentTimeStep: 0
 };
 
 export const initArrays = () => {
@@ -31,8 +17,6 @@ export const initArrays = () => {
     dataState.lastConcentrationData = new Float32Array(gridSize);
     dataState.lastConcentrationData2 = new Float32Array(gridSize);
     dataState.currentConcentrationData.fill(11);
-    
-    dataState.colors = new Float32Array(gridSize * 3);
     
     // Initialize sources and sinks
     const sources = new Float32Array(gridSize);
@@ -114,5 +98,4 @@ export const initArrays = () => {
         dataState.sources[i * Grid.WIDTH + (Grid.WIDTH - 1)] = 0;
         dataState.sinks[i * Grid.WIDTH + (Grid.WIDTH - 1)] = 0;
     }
-        
 };

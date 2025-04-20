@@ -1,7 +1,3 @@
-import * as THREE from 'three';
-import { calculateColor } from './colorUtils.js';
-import { dataState } from './state.js';
-import { Grid } from './config.js';
 
 // Global flag to indicate if processing should stop due to errors
 let shouldStopProcessing = false;
@@ -33,12 +29,13 @@ const calculateVertexHeight = (concentration, x, y) => {
  * Updates vertex colors based on concentration values
  * @param {number} concentration - The concentration value for this vertex
  * @param {number} vertexIndex - Index of the vertex in the buffer
+ * @param {Float32Array} colorArray - The color buffer to update
  */
-const updateVertexColors = (concentration, vertexIndex) => {
+const updateVertexColors = (concentration, vertexIndex, colorArray) => {
     const color = calculateColor(concentration);
-    dataState.colors[3 * vertexIndex] = color.r;
-    dataState.colors[3 * vertexIndex + 1] = color.g;
-    dataState.colors[3 * vertexIndex + 2] = color.b;
+    colorArray[3 * vertexIndex] = color.r;
+    colorArray[3 * vertexIndex + 1] = color.g;
+    colorArray[3 * vertexIndex + 2] = color.b;
 };
 
 /**
@@ -46,7 +43,6 @@ const updateVertexColors = (concentration, vertexIndex) => {
  * @param {THREE.Mesh} mesh - The Three.js mesh to update
  */
 const updateMeshAttributes = (mesh) => {
-    mesh.geometry.setAttribute('color', new THREE.BufferAttribute(dataState.colors, 3));
     mesh.geometry.attributes.position.needsUpdate = true;
     mesh.geometry.attributes.color.needsUpdate = true;
 };
@@ -57,14 +53,17 @@ const updateMeshAttributes = (mesh) => {
  * @param {Float32Array} concentrationData - Array of concentration values
  * @returns {boolean} True if processing should stop due to errors, false otherwise
  */
-export const updateSurfaceMesh = (mesh, concentrationData) => {
+export const updateSurfaceMesh = (mesh, concentrationData, width, height) => {
     shouldStopProcessing = false; // Reset stop flag for each update
     const positions = mesh.geometry.attributes.position.array;
     
+    // Get direct reference to the color buffer
+    const colorBuffer = mesh.geometry.attributes.color.array;
+    
     // Process each vertex in the grid
-    for (let y = 0; y < Grid.HEIGHT; y++) {
-        for (let x = 0; x < Grid.WIDTH; x++) {
-            const vertexIndex = y * Grid.WIDTH + x;
+    for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+            const vertexIndex = y * width + x;
             const currentConcentration = concentrationData[vertexIndex];
             
             // Update vertex height
@@ -74,8 +73,8 @@ export const updateSurfaceMesh = (mesh, concentrationData) => {
                 y
             );
             
-            // Update vertex color
-            updateVertexColors(currentConcentration, vertexIndex);
+            // Update vertex color directly in the mesh's color buffer
+            updateVertexColors(currentConcentration, vertexIndex, colorBuffer);
         }
     }
     
@@ -83,4 +82,26 @@ export const updateSurfaceMesh = (mesh, concentrationData) => {
     updateMeshAttributes(mesh);
     
     return shouldStopProcessing;
+};
+
+/**
+ * Calculate color based on concentration value
+ * @param {number} concentration - Concentration value
+ * @returns {Object} RGB color values
+ */
+ const calculateColor = (concentration) => {
+    // Normalize concentration value
+    const colorValue =  concentration / 10;
+    
+    // Calculate color components with phase shifts for RGB
+    const phase = colorValue * 2 * Math.PI;
+    const red = Math.sin(phase) * 0.5 + 0.5;
+    const green = Math.sin(phase - 4 * Math.PI / 3) * 0.5 + 0.5;
+    const blue = Math.sin(phase - 2 * Math.PI / 3) * 0.5 + 0.5;
+    
+    return {
+        r: red,
+        g: green,
+        b: blue
+    };
 };

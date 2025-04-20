@@ -1,11 +1,10 @@
 // Import necessary modules and functions
-import { setupNewScene } from './sceneManager.js';
+import { setupNewScene, sceneState } from './sceneManager.js';
 import { updateSurfaceMesh } from './meshUpdater.js';
 import { updateLoggsOverlay } from './overlayManager.js';
-import { sceneState, animationState, dataState } from './state.js';
-import { diffusion } from './diffusion.js';
+import { dataState } from './state.js';
 import { initArrays } from './state.js';
-import { DiffParams } from './config.js';
+import { DiffParams, Grid } from './config.js';
 
 // Global variables and constants
 export let stop = false; // Flag to stop the simulation
@@ -54,7 +53,7 @@ diffusionWorker.onmessage = function(e) {
 
     dataState.currentConcentrationData = currentConcentrationData;
     steadyState1 = steadyState;
-    animationState.currentTimeStep++;
+    dataState.currentTimeStep++;
     isWorkerBusy = false;
 };
 
@@ -69,11 +68,11 @@ diffusionWorker.onerror = function(error) {
  */
 const updateScene = () => {
     // Update the surface mesh with the current concentration data
-    stop = updateSurfaceMesh(sceneState.surfaceMesh, dataState.currentConcentrationData);
+    stop = updateSurfaceMesh(sceneState.surfaceMesh, dataState.currentConcentrationData, Grid.WIDTH, Grid.HEIGHT);
 
     // Update overlay with current run data
     updateLoggsOverlay({
-        currentTimeStep: animationState.currentTimeStep,
+        currentTimeStep: dataState.currentTimeStep,
         timeLapse: DiffParams.TIME_LAPSE,
         method: DiffParams.METHOD,
         runCount,
@@ -100,7 +99,7 @@ const handleSteadyState = () => {
     const time1 = performance.now();
     const elapsedTime = time1 - time0;
     steadyStateTimes.push(elapsedTime);
-    steadyStateSteps.push(animationState.currentTimeStep);
+    steadyStateSteps.push(dataState.currentTimeStep);
 
     console.log(`Run ${runCount + 1}: It took ${elapsedTime} milliseconds to reach steady state.`);
 
@@ -117,7 +116,7 @@ const resetSimulation = () => {
         return;
     }
 
-    animationState.currentTimeStep = 0; // Reset animation state
+    dataState.currentTimeStep = 0; // Reset animation state
     initArrays(); // Reinitialize arrays with new random sources and sinks
 
     init = true;
@@ -173,7 +172,7 @@ const animate = () => {
         init = true;
     }
 
-    animationState.animationFrameId = requestAnimationFrame(animate);
+    sceneState.animationFrameId = requestAnimationFrame(animate);
 
     // Render the scene
     sceneState.renderer.render(sceneState.scene, sceneState.camera);
@@ -181,7 +180,7 @@ const animate = () => {
     if (!stop) {
         updateScene();
     } else {
-        cancelAnimationFrame(animationState.animationFrameId);
+        cancelAnimationFrame(sceneState.animationFrameId);
         console.log("Simulation stopped due to NaN values.");
     }
 };
