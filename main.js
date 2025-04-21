@@ -6,7 +6,7 @@ import {
      updateSimulation, 
      initSimulation,
      requestDiffusionCalculation
-     } from './simulation.js';
+     } from './simulation/simulationManager.js';
 import { dataState, initArrays } from './state.js';
 import { DiffParams, SceneConf } from './config.js';
 
@@ -31,7 +31,7 @@ export const handleSteadyState = (dataState) => {
  */
 export const resetSimulation = (dataState) => {
     dataState.currentTimeStep = 0; // Reset animation state
-    initArrays(); // Reinitialize arrays with new random sources and sinks
+    initArrays(DiffParams, SceneConf); // Reinitialize arrays with new random sources and sinks
 
     dataState.init = true;
     dataState.steadyState = false;
@@ -43,7 +43,7 @@ export const resetSimulation = (dataState) => {
  */
 export const runSimulationStep = (dataState, DiffParams) => {
     // Run the simulation step
-    updateSimulation(dataState, DiffParams);
+    updateSimulation(dataState, DiffParams, SceneConf);
     
     // Check if steady state has been reached
     if (dataState.init && dataState.steadyState) {

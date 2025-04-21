@@ -9,8 +9,11 @@ let globalDataState = null; // Store a reference to the dataState object
 /**
  * Request diffusion calculation from the Web Worker.
  * @param {Array} concentration1 - Current concentration data.
+ * @param {Object} DiffParams - Diffusion parameters.
+ * @param {Object} dataState - Current state data.
+ * @param {Object} SceneConf - Scene configuration.
  */
-export const requestDiffusionCalculation = (concentration1, DiffParams, dataState) => {
+export const requestDiffusionCalculation = (concentration1, DiffParams, dataState, SceneConf) => {
     if (isWorkerBusy) return; // Skip if the worker is busy
 
     isWorkerBusy = true;
@@ -23,12 +26,13 @@ export const requestDiffusionCalculation = (concentration1, DiffParams, dataStat
         concentration1,
         sources,
         sinks,
-        DiffParams,
+        DiffParams, // Pass the entire DiffParams object
         DIFFUSION_RATE,
         deltaX,
         deltaT,
         method: DiffParams.METHOD,
         timeLapse: DiffParams.TIME_LAPSE,
+        SceneConf  // Pass the entire SceneConf object
     });
 };
 
@@ -52,12 +56,16 @@ diffusionWorker.onerror = function(error) {
 
 /**
  * Update the scene for the current time step.
+ * @param {Object} dataState - Current state data.
+ * @param {Object} DiffParams - Diffusion parameters.
+ * @param {Object} SceneConf - Scene configuration.
+ * @returns {boolean} The steady state flag.
  */
-export const updateSimulation = (dataState, DiffParams) => {
+export const updateSimulation = (dataState, DiffParams, SceneConf) => {
     // Update the surface mesh with the current concentration data
     if (!dataState.steadyState) {
         dataState.lastConcentrationData = dataState.currentConcentrationData;
-        requestDiffusionCalculation(dataState.currentConcentrationData, DiffParams, dataState);
+        requestDiffusionCalculation(dataState.currentConcentrationData, DiffParams, dataState, SceneConf);
     }
     // Steady state is now checked in main.js's runSimulationStep function
     

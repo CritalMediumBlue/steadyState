@@ -14,26 +14,7 @@
  * - R is sink/reaction term
  */
 
-import { thomasAlgorithm } from "./utils.js";
-import { DiffParams, SceneConf } from "./config.js";
-
-// ============================================================================
-// CONSTANTS
-// ============================================================================
-
-/**
- * Scaling factor for source and sink terms to adjust their influence on the system.
- * Higher values make sources/sinks have stronger effects on concentration changes.
- * @constant {number}
- */
-const SCALE_SINKS_AND_SOURCES = DiffParams.SCALE_SINKS_AND_SOURCES;
-
-/**
- * Half-saturation constant for Michaelis-Menten kinetics used in sink terms.
- * Represents the concentration at which the reaction rate is half of its maximum.
- * @constant {number}
- */
-const HALF_SATURATION_CONSTANT = DiffParams.HALF_SATURATION_CONSTANT;
+// Removed direct import of DiffParams and SceneConf
 
 // ============================================================================
 // HELPER FUNCTIONS
@@ -84,10 +65,11 @@ function enforceNonNegativeConcentration(data) {
  * as concentration increases.
  * 
  * @param {number} concentration - Current concentration value
+ * @param {number} halfSaturationConstant - Half saturation constant for Michaelis-Menten kinetics
  * @returns {number} - Michaelis-Menten term (between 0 and 1)
  */
-function calculateMichaelisMentenTerm(concentration) {
-    return concentration / (HALF_SATURATION_CONSTANT + concentration);
+function calculateMichaelisMentenTerm(concentration, halfSaturationConstant) {
+    return concentration / (halfSaturationConstant + concentration);
 }
 
 // ============================================================================
@@ -105,14 +87,17 @@ function calculateMichaelisMentenTerm(concentration) {
  * @param {number} deltaX - Spatial step size
  * @param {number} timeLapse - Time lapse for the simulation in seconds
  * @param {number} deltaT - Time step size
+ * @param {Object} diffParams - Diffusion parameters
+ * @param {Object} sceneConf - Scene configuration
  * @returns {Object} Object containing the updated concentration data and steady state status
  * @returns {Float32Array} currentConcentrationData - The updated concentration values
  * @returns {boolean} steadyState - Whether the system has reached steady state
  */
-export function solveFTCS(concentrationData, sources, sinks, diffusionRate, deltaX,timeLapse, deltaT) {
-    const { WIDTH, HEIGHT } = SceneConf;
+export function solveFTCS(concentrationData, sources, sinks, diffusionRate, deltaX, timeLapse, deltaT, diffParams, sceneConf) {
+    const { WIDTH, HEIGHT } = sceneConf;
     const totalNumberOfSteps = Math.round(timeLapse / deltaT);
-    const scaleSinksAndSources = SCALE_SINKS_AND_SOURCES * timeLapse;
+    const scaleSinksAndSources = diffParams.SCALE_SINKS_AND_SOURCES * timeLapse;
+    const halfSaturationConstant = diffParams.HALF_SATURATION_CONSTANT;
     
     // Create copies of input arrays to avoid modifying originals
     let current = new Float32Array(concentrationData);
@@ -132,7 +117,7 @@ export function solveFTCS(concentrationData, sources, sinks, diffusionRate, delt
                 const idx = rowStart + x;
                 
                 // Calculate Michaelis-Menten kinetics for sink term
-                const michaelisMentenTerm = calculateMichaelisMentenTerm(current[idx]);
+                const michaelisMentenTerm = calculateMichaelisMentenTerm(current[idx], halfSaturationConstant);
                 
                 // Calculate diffusion using 5-point stencil (central differences in space)
                 // This approximates the Laplacian (∇²C)
@@ -157,7 +142,6 @@ export function solveFTCS(concentrationData, sources, sinks, diffusionRate, delt
         enforceNonNegativeConcentration(next);
         
         // Update current data for next time step
-        // Note: We're reusing the same array reference to avoid unnecessary allocations
         [current, next] = [next, current];
     }
 
@@ -173,7 +157,6 @@ export function solveFTCS(concentrationData, sources, sinks, diffusionRate, delt
 /**
  * Alternating Direction Implicit (ADI) method for solving the diffusion equation.
  * This is an implicit method that offers better stability than FTCS, allowing larger time steps.
- * It splits each time step into two half-steps, solving implicitly in alternating directions.
  * 
  * @param {Float32Array} concentrationData - Current concentration data
  * @param {Float32Array} sources - Source terms (adding concentration)
@@ -181,18 +164,20 @@ export function solveFTCS(concentrationData, sources, sinks, diffusionRate, delt
  * @param {number} diffusionRate - Diffusion coefficient (D)
  * @param {number} deltaX - Spatial step size
  * @param {number} timeLapse - Time lapse for the simulation in seconds
+ * @param {Object} diffParams - Diffusion parameters
+ * @param {Object} sceneConf - Scene configuration
  * @returns {Object} Object containing the updated concentration data and steady state status
  * @returns {Float32Array} currentConcentrationData - The updated concentration values
  * @returns {boolean} steadyState - Whether the system has reached steady state
  */
-export function solveADI(concentrationData, sources, sinks, diffusionRate, deltaX, timeLapse) {
-    const { WIDTH, HEIGHT } = SceneConf;
+export function solveADI(concentrationData, sources, sinks, diffusionRate, deltaX, timeLapse, diffParams, sceneConf) {
+    const { WIDTH, HEIGHT } = sceneConf;
     
     // ADI uses a fixed time step for stability and accuracy
     const timeStep = 1; // one second is the maximum time step
     const totalNumberOfSteps = Math.round(timeLapse / timeStep);
-    const scaleSinksAndSources = SCALE_SINKS_AND_SOURCES ;
-
+    const scaleSinksAndSources = diffParams.SCALE_SINKS_AND_SOURCES;
+    const halfSaturationConstant = diffParams.HALF_SATURATION_CONSTANT;
     
     // Create a copy of the input concentration data
     let currentData = new Float32Array(concentrationData);
@@ -247,7 +232,7 @@ export function solveADI(concentrationData, sources, sinks, diffusionRate, delta
             // Set up the right-hand side for this row
             for (let i = 1; i < WIDTH - 1; i++) {
                 const idx = j * WIDTH + i;
-                const michaelisMentenTerm = calculateMichaelisMentenTerm(currentData[idx]);
+                const michaelisMentenTerm = calculateMichaelisMentenTerm(currentData[idx], halfSaturationConstant);
                 
                 // Calculate explicit term in y-direction
                 const explicitYTerm = currentData[idx] + alpha * (
@@ -299,7 +284,7 @@ export function solveADI(concentrationData, sources, sinks, diffusionRate, delta
             // Set up the right-hand side for this column
             for (let j = 1; j < HEIGHT - 1; j++) {
                 const idx = j * WIDTH + i;
-                const michaelisMentenTerm = calculateMichaelisMentenTerm(intermediateData[idx]);
+                const michaelisMentenTerm = calculateMichaelisMentenTerm(intermediateData[idx], halfSaturationConstant);
                 
                 // Calculate explicit term in x-direction
                 const explicitXTerm = intermediateData[idx] + alpha * (
@@ -337,11 +322,8 @@ export function solveADI(concentrationData, sources, sinks, diffusionRate, delta
     return {
         currentConcentrationData: currentData,
         steadyState: steadyState
-
     };
 }
-
-
 
 /**
  * Check if the system has reached a steady state by comparing current concentration
@@ -365,3 +347,62 @@ const checkForSteadyState = (previous, next) => {
 
     return  steadyState;
 };
+
+function thomasAlgorithm(
+    lowerDiagonal,
+    mainDiagonal,
+    upperDiagonal,
+    rightHandSide,
+    solution,
+    systemSize
+) {
+    // Create temporary arrays to avoid modifying the input arrays
+    // These arrays store the modified coefficients during forward elimination
+    const modifiedUpperDiagonal = new Float32Array(systemSize);
+    const modifiedRightHandSide = new Float32Array(systemSize);
+    
+    // ====================================================================
+    // PHASE 1: Forward Elimination
+    // ====================================================================
+    // This phase eliminates the lower diagonal elements and modifies the
+    // upper diagonal and right-hand side accordingly
+    
+    // Process the first row
+    // For numerical stability, ensure we don't divide by zero or very small numbers
+    const firstPivot = Math.abs(mainDiagonal[0]) < 1e-10 ? 1e-10 : mainDiagonal[0];
+    modifiedUpperDiagonal[0] = upperDiagonal[0] / firstPivot;
+    modifiedRightHandSide[0] = rightHandSide[0] / firstPivot;
+    
+    // Process rows 1 to n-1
+    for (let i = 1; i < systemSize; i++) {
+        // Calculate the denominator: b'ᵢ = bᵢ - aᵢ * c'ᵢ₋₁
+        // This represents the pivot element after elimination
+        const denominator = mainDiagonal[i] - lowerDiagonal[i] * modifiedUpperDiagonal[i-1];
+        
+        // Ensure numerical stability by avoiding division by very small numbers
+        // If the denominator is close to zero, use a small value instead
+        const pivotInverse = 1.0 / (Math.abs(denominator) < 1e-10 ? 1e-10 : denominator);
+        
+        // Calculate the modified upper diagonal: c'ᵢ = cᵢ / b'ᵢ
+        modifiedUpperDiagonal[i] = upperDiagonal[i] * pivotInverse;
+        
+        // Calculate the modified right-hand side: d'ᵢ = (dᵢ - aᵢ * d'ᵢ₋₁) / b'ᵢ
+        modifiedRightHandSide[i] = (rightHandSide[i] - lowerDiagonal[i] * modifiedRightHandSide[i-1]) * pivotInverse;
+    }
+    
+    // ====================================================================
+    // PHASE 2: Back Substitution
+    // ====================================================================
+    // This phase solves the transformed system from bottom to top
+    
+    // The last element of the solution is directly given by the modified right-hand side
+    solution[systemSize-1] = modifiedRightHandSide[systemSize-1];
+    
+    // Solve for the remaining elements from the second-to-last to the first
+    for (let i = systemSize - 2; i >= 0; i--) {
+        // Calculate xᵢ = d'ᵢ - c'ᵢ * xᵢ₊₁
+        solution[i] = modifiedRightHandSide[i] - modifiedUpperDiagonal[i] * solution[i+1];
+    }
+}
+
+

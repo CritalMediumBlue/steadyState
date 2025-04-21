@@ -1,6 +1,3 @@
-import { solveFTCS } from "./diffusionCore.js";
-import { DiffParams, SceneConf } from './config.js';
-
 export const dataState = {
     // Concentration data
     currentConcentrationData: null,
@@ -19,15 +16,16 @@ export const dataState = {
     
     // Time calculation properties
     timeLapse: 1, // Default time lapse factor
-    method: 'ADI', // Default simulation method
+    method: null,
     
     // Additional simulation variables
     steadyState: false,
     time0: 0
 };
 
-export const initArrays = () => {
+export const initArrays = (DiffParams, SceneConf) => {
     const gridSize = SceneConf.WIDTH * SceneConf.HEIGHT;
+    dataState.method = DiffParams.METHOD;
 
     dataState.currentConcentrationData = new Float32Array(gridSize);
     dataState.lastConcentrationData = new Float32Array(gridSize);
@@ -55,7 +53,18 @@ export const initArrays = () => {
             pos = row * SceneConf.WIDTH + col;
         } while(sourcePositions.has(pos));
         sourcePositions.add(pos);
-        sources[pos] = 0.95; // has to be slightly less than the sinks
+        const sourceValue = 0.95;
+        //add the source value around the position
+        const posLeft = pos - 1;
+        const posRight = pos + 1;
+        const posUp = pos - SceneConf.WIDTH;
+        const posDown = pos + SceneConf.WIDTH;
+        sources[pos] = sourceValue*0.6; 
+        sources[posLeft] = sourceValue*0.1;
+        sources[posRight] = sourceValue*0.1;
+        sources[posUp] = sourceValue*0.1;
+        sources[posDown] = sourceValue*0.1;
+
     
         // Generate a valid sink position
         do {
@@ -64,40 +73,22 @@ export const initArrays = () => {
             pos = row * SceneConf.WIDTH + col;
         } while(sinkPositions.has(pos));
         sinkPositions.add(pos);
-        sinks[pos] = 1;
+        const sinkValue = 1.0;
+        //add the sink value around the position
+        const posLeft2 = pos - 1;
+        const posRight2 = pos + 1;
+        const posUp2 = pos - SceneConf.WIDTH;
+        const posDown2 = pos + SceneConf.WIDTH;
+        sinks[pos] = sinkValue*0.6;
+        sinks[posLeft2] = sinkValue*0.1;
+        sinks[posRight2] = sinkValue*0.1;
+        sinks[posUp2] = sinkValue*0.1;
+        sinks[posDown2] = sinkValue*0.1;
     }
     // assign the sources array
     dataState.sources = sources;
     dataState.sinks = sinks;
     
-     // diffuse sources
-    const emptyArray = new Float32Array(gridSize);
-    emptyArray.fill(0);
-   
-    const result = solveFTCS(
-        sources,
-        emptyArray,
-        emptyArray,
-        smoothFactor,
-        DiffParams.DELTA_X,
-        1,
-        DiffParams.DELTA_T
-        
-    );
-    dataState.sources = result.currentConcentrationData;
-
-    // diffuse sinks
-    const result2 = solveFTCS(
-        sinks,
-        emptyArray,
-        emptyArray,
-        smoothFactor,
-        DiffParams.DELTA_X,
-        1,
-        DiffParams.DELTA_T
-        
-    );
-    dataState.sinks = result2.currentConcentrationData;
 
     //set boundaries of the sources and sinks to 0
     for (let i = 0; i < SceneConf.WIDTH; i++) {

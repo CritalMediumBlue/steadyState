@@ -1,4 +1,3 @@
-import { CFLCondition } from './utils.js';
 
 // Scene configuration
 export const SceneConf = {
@@ -47,11 +46,10 @@ export const DiffParams = {
     SCALE_SINKS_AND_SOURCES: 200,
     HALF_SATURATION_CONSTANT: 0.5
 };
-
+const diffusionRate = DiffParams.DIFFUSION_RATE;
+const dimensions = 2; // Assuming 2D diffusion
+const deltaX = DiffParams.DELTA_X; // micrometers
+const maxDelT = deltaX * deltaX / (2 * diffusionRate * dimensions);
 // Calculate derived constants
-DiffParams.DELTA_T = CFLCondition(
-    DiffParams.DELTA_X,
-    DiffParams.DIFFUSION_RATE,
-    2
-);
+DiffParams.DELTA_T = maxDelT;
 DiffParams.STEPS_PER_SECOND = Math.round(1 / DiffParams.DELTA_T);

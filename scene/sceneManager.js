@@ -1,5 +1,4 @@
-import * as THREE from 'three';
-import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { THREE, OrbitControls } from './threeImports.js';
 import { updateSurfaceMesh } from './sceneComponents/concentrationMesh.js';
 import { updateLoggsOverlay } from './sceneComponents/UIoverlay.js';
 
