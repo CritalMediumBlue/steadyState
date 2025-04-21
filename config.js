@@ -24,7 +24,6 @@ export const SceneConf = {
     CONTROLS_MAX_DISTANCE: 500,
     CONTROLS_MIN_DISTANCE: 10,
     
-    // Grid dimensions (previously separate constant)
     WIDTH: 100,
     HEIGHT: 60
 };
@@ -44,7 +43,9 @@ export const DiffParams = {
     
     // Reaction parameters
     SCALE_SINKS_AND_SOURCES: 200,
-    HALF_SATURATION_CONSTANT: 0.5
+    HALF_SATURATION_CONSTANT: 0.5,
+    WIDTH: 100,
+    HEIGHT: 60
 };
 const diffusionRate = DiffParams.DIFFUSION_RATE;
 const dimensions = 2; // Assuming 2D diffusion

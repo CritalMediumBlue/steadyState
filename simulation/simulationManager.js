@@ -2,7 +2,7 @@
 
 const MAX_WORKERS = navigator.hardwareConcurrency || 4;
 console.log("Max Workers", MAX_WORKERS);
-const diffusionWorker = new Worker('diffusionWorker.js', { type: 'module' });
+const diffusionWorker = new Worker('./simulation/diffusionWorker.js', { type: 'module' });
 let isWorkerBusy = false; // Flag to track if the worker is busy
 let globalDataState = null; // Store a reference to the dataState object
 
@@ -67,7 +67,6 @@ export const updateSimulation = (dataState, DiffParams, SceneConf) => {
         dataState.lastConcentrationData = dataState.currentConcentrationData;
         requestDiffusionCalculation(dataState.currentConcentrationData, DiffParams, dataState, SceneConf);
     }
-    // Steady state is now checked in main.js's runSimulationStep function
     
     return dataState.steadyState;  // Return steady state flag to inform the caller
 };
@@ -81,5 +80,4 @@ export const initSimulation = (dataState) => {
     dataState.runCount = 0;
     dataState.steadyStateTimes = [];
     dataState.steadyStateSteps = [];
-    // resetSimulation is called by main.js
 };

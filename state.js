@@ -37,7 +37,6 @@ export const initArrays = (DiffParams, SceneConf) => {
     const sinks = new Float32Array(gridSize);
 
     const numberOfSinksAndSources = 10; 
-    const smoothFactor = 0.5; // Adjust this value to control the smoothness of the sources and sinks
     
     const sourcePositions = new Set();
     const sinkPositions = new Set();

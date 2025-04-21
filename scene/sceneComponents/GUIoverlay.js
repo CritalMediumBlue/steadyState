@@ -5,7 +5,6 @@
  *
  * @param {Object} params - Parameters for updating the overlay
  * @param {number} params.currentTimeStep - Current time step of the simulation
- * @param {number} params.timeLapse - Time lapse factor
  * @param {string} params.method - Simulation method
  * @param {number} params.runCount - Current run count
  * @param {number} params.maxRuns - Maximum number of runs
@@ -66,4 +65,35 @@ export const updateLoggsOverlay = ({
 
     // Update the overlay element with the constructed text
     overlay.innerText = overlayText;
+};
+
+/**
+ * Initializes interactive elements in the GUI overlay
+ * @param {Object} options - Configuration options
+ * @param {Function} options.onMethodChange - Callback when method is changed
+ * @param {Object} options.initialValues - Initial values for controls
+ */
+export const initializeGUIControls = ({ onMethodChange, initialValues = {} }) => {
+    const controlsContainer = document.getElementById("controls-overlay");
+    if (!controlsContainer) {
+        console.error("Controls overlay container not found");
+        return;
+    }
+    
+    // Clear any existing controls
+    controlsContainer.innerHTML = '';
+    
+    // Create method toggle button
+    const methodButton = document.createElement("button");
+    methodButton.className = "gui-control-btn";
+    methodButton.textContent = `Method: ${initialValues.method || 'FTCS'}`;
+    methodButton.addEventListener("click", () => {
+        const newMethod = methodButton.textContent.includes('FTCS') ? 'ADI' : 'FTCS';
+        methodButton.textContent = `Method: ${newMethod}`;
+        if (onMethodChange) onMethodChange(newMethod);
+    });
+    
+    
+    // Add elements to container
+    controlsContainer.appendChild(methodButton);
 };

@@ -1,7 +1,7 @@
 import { THREE, OrbitControls } from './threeImports.js';
 import { updateSurfaceMesh } from './sceneComponents/concentrationMesh.js';
-import { updateLoggsOverlay } from './sceneComponents/UIoverlay.js';
-
+import { updateLoggsOverlay, initializeGUIControls } from './sceneComponents/GUIoverlay.js';
+import { DiffParams } from '../config.js';
 export const scene = {
     scene: null,
     camera: null,
@@ -13,24 +13,30 @@ export const scene = {
 /**
  * Setup new scene and initialize simulation arrays
  */
-const setupNewScene = (SceneConf) => {
+export const setupNewScene = (SceneConf, DiffParams) => {
     const setup = setupScene( SceneConf);
     Object.assign(scene, setup);
     document.getElementById('scene-container').appendChild(scene.renderer.domElement);
+    initializeGUIControls({
+        initialValues: {
+            method: DiffParams.METHOD,
+        },
+        onMethodChange: (method) => {
+            DiffParams.METHOD = method;
+            // Any other updates needed when method changes
+        }
+    });
 };
 
-export const updateScene = (dataState, SceneConf) => {
+export const updateScene = (dataState, SceneConf, DiffParams) => {
 
-    // check if the scene is initialized, if not, initialize it
-    if (!scene.scene) {
-        setupNewScene(SceneConf);
-    }
+  
 
   
     
     const { currentConcentrationData, currentTimeStep, 
         steadyStateTimes, steadyStateSteps, runCount, maxRuns,
-        timeLapse, method
+        timeLapse
      } = dataState;
     updateSurfaceMesh(
         scene.surfaceMesh,
@@ -38,6 +44,8 @@ export const updateScene = (dataState, SceneConf) => {
         scene.WIDTH,
         scene.HEIGHT
     );
+
+    const method = DiffParams.METHOD;
 
     updateLoggsOverlay({
                 currentConcentrationData: currentConcentrationData,
