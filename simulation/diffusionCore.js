@@ -14,7 +14,7 @@
  * - R is sink/reaction term
  */
 
-// Removed direct import of DiffParams and SceneConf
+// Removed direct import of diffParams and sceneConf
 
 // ============================================================================
 // HELPER FUNCTIONS

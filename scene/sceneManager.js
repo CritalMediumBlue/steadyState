@@ -1,7 +1,6 @@
 import { THREE, OrbitControls } from './threeImports.js';
-import { updateSurfaceMesh } from './sceneComponents/concentrationMesh.js';
+import { updateSurfaceMesh, createConcentrationMesh } from './sceneComponents/concentrationMesh.js';
 import { updateLoggsOverlay, initializeGUIControls } from './sceneComponents/GUIoverlay.js';
-import { DiffParams } from '../config.js';
 export const scene = {
     scene: null,
     camera: null,
@@ -13,22 +12,22 @@ export const scene = {
 /**
  * Setup new scene and initialize simulation arrays
  */
-export const setupNewScene = (SceneConf, DiffParams) => {
-    const setup = setupScene( SceneConf);
+export const setupNewScene = (sceneConf, diffParams) => {
+    const setup = setupScene( sceneConf);
     Object.assign(scene, setup);
     document.getElementById('scene-container').appendChild(scene.renderer.domElement);
     initializeGUIControls({
         initialValues: {
-            method: DiffParams.METHOD,
+            method: diffParams.METHOD,
         },
         onMethodChange: (method) => {
-            DiffParams.METHOD = method;
+            diffParams.METHOD = method;
             // Any other updates needed when method changes
         }
     });
 };
 
-export const updateScene = (dataState, SceneConf, DiffParams) => {
+export const updateScene = (dataState, sceneConf, diffParams) => {
 
   
 
@@ -45,7 +44,7 @@ export const updateScene = (dataState, SceneConf, DiffParams) => {
         scene.HEIGHT
     );
 
-    const method = DiffParams.METHOD;
+    const method = diffParams.METHOD;
 
     updateLoggsOverlay({
                 currentConcentrationData: currentConcentrationData,
@@ -61,64 +60,50 @@ export const updateScene = (dataState, SceneConf, DiffParams) => {
     scene.renderer.render(scene.scene, scene.camera);
 }
 
-const setupScene = ( SceneConf) => {
+const setupScene = ( sceneConf) => {
     const scene = new THREE.Scene();
-    scene.fog = new THREE.Fog(SceneConf.FOG_COLOR, SceneConf.FOG_NEAR, SceneConf.FOG_FAR);
+    scene.fog = new THREE.Fog(sceneConf.FOG_COLOR, sceneConf.FOG_NEAR, sceneConf.FOG_FAR);
 
-    const WIDTH = SceneConf.WIDTH;
-    const HEIGHT = SceneConf.HEIGHT;
+    const WIDTH = sceneConf.WIDTH;
+    const HEIGHT = sceneConf.HEIGHT;
 
     // Create a camera
     const camera = new THREE.PerspectiveCamera(
-        SceneConf.CAMERA_FOV, 
+        sceneConf.CAMERA_FOV, 
         window.innerWidth / window.innerHeight, 
-        SceneConf.CAMERA_NEAR, 
-        SceneConf.CAMERA_FAR
+        sceneConf.CAMERA_NEAR, 
+        sceneConf.CAMERA_FAR
     );
 
     camera.position.set(
-        SceneConf.CAMERA_POSITION.x, 
-        SceneConf.CAMERA_POSITION.y, 
-        SceneConf.CAMERA_POSITION.z
+        sceneConf.CAMERA_POSITION.x, 
+        sceneConf.CAMERA_POSITION.y, 
+        sceneConf.CAMERA_POSITION.z
     );
 
     camera.lookAt(
-        SceneConf.CAMERA_LOOKAT.x, 
-        SceneConf.CAMERA_LOOKAT.y, 
-        SceneConf.CAMERA_LOOKAT.z
+        sceneConf.CAMERA_LOOKAT.x, 
+        sceneConf.CAMERA_LOOKAT.y, 
+        sceneConf.CAMERA_LOOKAT.z
     );
 
     // Create a renderer
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setClearColor(SceneConf.FOG_COLOR);
+    renderer.setClearColor(sceneConf.FOG_COLOR);
 
     // Create orbit controls
     const controls = new OrbitControls(camera, renderer.domElement);
-    controls.maxDistance = SceneConf.CONTROLS_MAX_DISTANCE;
-    controls.minDistance = SceneConf.CONTROLS_MIN_DISTANCE;
+    controls.maxDistance = sceneConf.CONTROLS_MAX_DISTANCE;
+    controls.minDistance = sceneConf.CONTROLS_MIN_DISTANCE;
+
+
+    // Creation of the mesh should be designed
+    // to be done in a separate module 'concentrationMesh.js'
+
 
     // Create a surface mesh
-    const geometry = new THREE.PlaneGeometry(WIDTH, HEIGHT, WIDTH - 1, HEIGHT - 1);
-    
-    // Initialize color buffer with default color (white)
-    const vertexCount = geometry.attributes.position.count;
-    const colorBuffer = new Float32Array(vertexCount * 3);
-    for (let i = 0; i < vertexCount; i++) {
-        colorBuffer[i * 3] = 1.0;     // R
-        colorBuffer[i * 3 + 1] = 1.0; // G
-        colorBuffer[i * 3 + 2] = 1.0; // B
-    }
-    
-    // Add color attribute to geometry
-    geometry.setAttribute('color', new THREE.BufferAttribute(colorBuffer, 3));
-    
-    const material = new THREE.MeshBasicMaterial({ 
-        vertexColors: true,
-        wireframe: true
-    });
-    
-    const surfaceMesh = new THREE.Mesh(geometry, material);
+    const surfaceMesh = createConcentrationMesh(WIDTH, HEIGHT, THREE);
     scene.add(surfaceMesh);
 
     // Handle window resize

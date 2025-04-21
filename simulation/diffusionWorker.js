@@ -11,8 +11,8 @@ self.onmessage = function(e) {
         deltaT,
         method, 
         timeLapse,
-        DiffParams,
-        SceneConf
+        diffParams,
+        sceneConf
     } = e.data;
     
     // Perform diffusion calculation
@@ -25,8 +25,8 @@ self.onmessage = function(e) {
         deltaT,
         method,
         timeLapse,
-        DiffParams,
-        SceneConf
+        diffParams,
+        sceneConf
     );
 
    

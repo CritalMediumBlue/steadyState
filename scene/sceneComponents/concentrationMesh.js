@@ -1,9 +1,37 @@
-
-
-
 // Constants for height calculations
 const BASE_HEIGHT_OFFSET = -11;
 const HEIGHT_SCALE_FACTOR = 3;
+
+/**
+ * Creates a new concentration mesh for displaying simulation data
+ * @param {number} width - The width of the mesh
+ * @param {number} height - The height of the mesh
+ * @returns {THREE.Mesh} The created surface mesh
+ */
+export const createConcentrationMesh = (width, height, THREE) => {
+    
+    // Create a surface mesh
+    const geometry = new THREE.PlaneGeometry(width, height, width - 1, height - 1);
+    
+    // Initialize color buffer with default color (white)
+    const vertexCount = geometry.attributes.position.count;
+    const colorBuffer = new Float32Array(vertexCount * 3);
+    for (let i = 0; i < vertexCount; i++) {
+        colorBuffer[i * 3] = 1.0;     // R
+        colorBuffer[i * 3 + 1] = 1.0; // G
+        colorBuffer[i * 3 + 2] = 1.0; // B
+    }
+    
+    // Add color attribute to geometry
+    geometry.setAttribute('color', new THREE.BufferAttribute(colorBuffer, 3));
+    
+    const material = new THREE.MeshBasicMaterial({ 
+        vertexColors: true,
+        wireframe: true
+    });
+    
+    return new THREE.Mesh(geometry, material);
+};
 
 /**
  * Calculates the height for a vertex based on concentration data

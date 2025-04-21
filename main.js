@@ -8,7 +8,7 @@ import {
      initSimulation,
      } from './simulation/simulationManager.js';
 import { dataState, initArrays } from './state.js';
-import { DiffParams, SceneConf } from './config.js';
+import { diffParams, sceneConf } from './config.js';
 
 /**
  * Handle actions when steady state is reached.
@@ -31,7 +31,7 @@ const handleSteadyState = (dataState) => {
  */
 const resetSimulation = (dataState) => {
     dataState.currentTimeStep = 0; // Reset animation state
-    initArrays(DiffParams, SceneConf); // Reinitialize arrays with new random sources and sinks
+    initArrays(diffParams, sceneConf); // Reinitialize arrays with new random sources and sinks
 
     dataState.init = true;
     dataState.steadyState = false;
@@ -41,9 +41,9 @@ const resetSimulation = (dataState) => {
 /**
  * Run a simulation step and check for steady state.
  */
-export const runSimulationStep = (dataState, DiffParams) => {
+export const runSimulationStep = (dataState, diffParams) => {
     // Run the simulation step
-    updateSimulation(dataState, DiffParams, SceneConf);
+    updateSimulation(dataState, diffParams, sceneConf);
     
     // Check if steady state has been reached
     if (dataState.init && dataState.steadyState) {
@@ -63,14 +63,14 @@ const animate = () => {
     scene.animationFrameId = requestAnimationFrame(animate);
 
     // Run simulation step and check for steady state
-    runSimulationStep(dataState, DiffParams);
-    updateScene(dataState, SceneConf,DiffParams);
+    runSimulationStep(dataState, diffParams);
+    updateScene(dataState, sceneConf,diffParams);
 };
 
 // Initialize the scene and start the animation loop when the page loads
 window.addEventListener('load', () => {
     // Set up the scene
-    setupNewScene(SceneConf,  DiffParams);
+    setupNewScene(sceneConf,  diffParams);
     initSimulation(dataState);
 
     resetSimulation(dataState); // Explicitly call resetSimulation after initialization

@@ -1,6 +1,6 @@
 
 // Scene configuration
-export const SceneConf = {
+export const sceneConf = {
     FOG_COLOR: 0x000000,
     FOG_NEAR:   10,
     FOG_FAR:    150,
@@ -29,7 +29,7 @@ export const SceneConf = {
 };
 
 // Diffusion parameters
-export const DiffParams = {
+export const diffParams = {
     DIFFUSION_RATE: 100, // micrometers squared per second
     DELTA_X: 1, // micrometers
     TIME_LAPSE: 5, // seconds
@@ -47,10 +47,10 @@ export const DiffParams = {
     WIDTH: 100,
     HEIGHT: 60
 };
-const diffusionRate = DiffParams.DIFFUSION_RATE;
+const diffusionRate = diffParams.DIFFUSION_RATE;
 const dimensions = 2; // Assuming 2D diffusion
-const deltaX = DiffParams.DELTA_X; // micrometers
+const deltaX = diffParams.DELTA_X; // micrometers
 const maxDelT = deltaX * deltaX / (2 * diffusionRate * dimensions);
 // Calculate derived constants
-DiffParams.DELTA_T = maxDelT;
-DiffParams.STEPS_PER_SECOND = Math.round(1 / DiffParams.DELTA_T);
+diffParams.DELTA_T = maxDelT;
+diffParams.STEPS_PER_SECOND = Math.round(1 / diffParams.DELTA_T);
