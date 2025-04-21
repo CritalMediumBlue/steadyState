@@ -24,8 +24,6 @@ export const sceneConf = {
     CONTROLS_MAX_DISTANCE: 500,
     CONTROLS_MIN_DISTANCE: 10,
     
-    WIDTH: 100,
-    HEIGHT: 60
 };
 
 // Diffusion parameters

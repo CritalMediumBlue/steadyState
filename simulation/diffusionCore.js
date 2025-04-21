@@ -94,7 +94,7 @@ function calculateMichaelisMentenTerm(concentration, halfSaturationConstant) {
  * @returns {boolean} steadyState - Whether the system has reached steady state
  */
 export function solveFTCS(concentrationData, sources, sinks, diffusionRate, deltaX, timeLapse, deltaT, diffParams, sceneConf) {
-    const { WIDTH, HEIGHT } = sceneConf;
+    const { WIDTH, HEIGHT } = diffParams;
     const totalNumberOfSteps = Math.round(timeLapse / deltaT);
     const scaleSinksAndSources = diffParams.SCALE_SINKS_AND_SOURCES * timeLapse;
     const halfSaturationConstant = diffParams.HALF_SATURATION_CONSTANT;
@@ -165,13 +165,13 @@ export function solveFTCS(concentrationData, sources, sinks, diffusionRate, delt
  * @param {number} deltaX - Spatial step size
  * @param {number} timeLapse - Time lapse for the simulation in seconds
  * @param {Object} diffParams - Diffusion parameters
- * @param {Object} sceneConf - Scene configuration
+ * @param {Object} diffParams - Scene configuration
  * @returns {Object} Object containing the updated concentration data and steady state status
  * @returns {Float32Array} currentConcentrationData - The updated concentration values
  * @returns {boolean} steadyState - Whether the system has reached steady state
  */
 export function solveADI(concentrationData, sources, sinks, diffusionRate, deltaX, timeLapse, diffParams, sceneConf) {
-    const { WIDTH, HEIGHT } = sceneConf;
+    const { WIDTH, HEIGHT } = diffParams;
     
     // ADI uses a fixed time step for stability and accuracy
     const timeStep = 1; // one second is the maximum time step

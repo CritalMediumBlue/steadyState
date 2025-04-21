@@ -1,7 +1,8 @@
 // Import necessary modules and functions
 import { scene,
     updateScene,
-    setupNewScene
+    setupNewScene,
+    createMesh
 } from './scene/sceneManager.js';
 import {
      updateSimulation, 
@@ -71,6 +72,8 @@ const animate = () => {
 window.addEventListener('load', () => {
     // Set up the scene
     setupNewScene(sceneConf,  diffParams);
+
+    createMesh(diffParams.WIDTH, diffParams.HEIGHT);
     initSimulation(dataState);
 
     resetSimulation(dataState); // Explicitly call resetSimulation after initialization

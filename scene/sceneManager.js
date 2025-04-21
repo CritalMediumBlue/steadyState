@@ -10,10 +10,24 @@ export const scene = {
 };
 
 /**
+ * Creates and returns a concentration mesh with specified dimensions
+ * @param {number} width - Width of the mesh
+ * @param {number} height - Height of the mesh
+ * @returns {THREE.Mesh} The created concentration mesh
+ */
+export const createMesh = (width, height) => {
+    const surfaceMesh = createConcentrationMesh(width, height, THREE);
+    scene.scene.add(surfaceMesh);
+    scene.surfaceMesh = surfaceMesh;
+};
+
+/**
  * Setup new scene and initialize simulation arrays
  */
 export const setupNewScene = (sceneConf, diffParams) => {
-    const setup = setupScene( sceneConf);
+    const setup = setupScene(sceneConf);
+    
+    
     Object.assign(scene, setup);
     document.getElementById('scene-container').appendChild(scene.renderer.domElement);
     initializeGUIControls({
@@ -40,8 +54,8 @@ export const updateScene = (dataState, sceneConf, diffParams) => {
     updateSurfaceMesh(
         scene.surfaceMesh,
         currentConcentrationData,
-        scene.WIDTH,
-        scene.HEIGHT
+        diffParams.WIDTH,
+        diffParams.HEIGHT
     );
 
     const method = diffParams.METHOD;
@@ -63,9 +77,6 @@ export const updateScene = (dataState, sceneConf, diffParams) => {
 const setupScene = ( sceneConf) => {
     const scene = new THREE.Scene();
     scene.fog = new THREE.Fog(sceneConf.FOG_COLOR, sceneConf.FOG_NEAR, sceneConf.FOG_FAR);
-
-    const WIDTH = sceneConf.WIDTH;
-    const HEIGHT = sceneConf.HEIGHT;
 
     // Create a camera
     const camera = new THREE.PerspectiveCamera(
@@ -97,15 +108,6 @@ const setupScene = ( sceneConf) => {
     controls.maxDistance = sceneConf.CONTROLS_MAX_DISTANCE;
     controls.minDistance = sceneConf.CONTROLS_MIN_DISTANCE;
 
-
-    // Creation of the mesh should be designed
-    // to be done in a separate module 'concentrationMesh.js'
-
-
-    // Create a surface mesh
-    const surfaceMesh = createConcentrationMesh(WIDTH, HEIGHT, THREE);
-    scene.add(surfaceMesh);
-
     // Handle window resize
     window.addEventListener('resize', () => {
         camera.aspect = window.innerWidth / window.innerHeight;
@@ -113,5 +115,5 @@ const setupScene = ( sceneConf) => {
         renderer.setSize(window.innerWidth, window.innerHeight);
     });
 
-    return { scene, camera, renderer, surfaceMesh, WIDTH, HEIGHT };
+    return { scene, camera, renderer };
 };
