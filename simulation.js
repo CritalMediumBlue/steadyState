@@ -1,23 +1,21 @@
-// Import necessary modules and functions
-import { dataState, initArrays } from './state.js';
-import { DiffParams } from './config.js';
-
-
 // Web Worker for diffusion calculations
 
 const MAX_WORKERS = navigator.hardwareConcurrency || 4;
 console.log("Max Workers", MAX_WORKERS);
 const diffusionWorker = new Worker('diffusionWorker.js', { type: 'module' });
 let isWorkerBusy = false; // Flag to track if the worker is busy
+let globalDataState = null; // Store a reference to the dataState object
 
 /**
  * Request diffusion calculation from the Web Worker.
  * @param {Array} concentration1 - Current concentration data.
  */
-export const requestDiffusionCalculation = (concentration1) => {
+export const requestDiffusionCalculation = (concentration1, DiffParams, dataState) => {
     if (isWorkerBusy) return; // Skip if the worker is busy
 
     isWorkerBusy = true;
+    globalDataState = dataState; // Store reference to dataState
+
     const { sources, sinks } = dataState;
     const { DELTA_X: deltaX, DELTA_T: deltaT, DIFFUSION_RATE } = DiffParams;
 
@@ -38,9 +36,11 @@ export const requestDiffusionCalculation = (concentration1) => {
 diffusionWorker.onmessage = function(e) {
     const { currentConcentrationData, steadyState } = e.data;
 
-    dataState.currentConcentrationData = currentConcentrationData;
-    dataState.steadyState = steadyState;
-    dataState.currentTimeStep++;
+    if (globalDataState) {
+        globalDataState.currentConcentrationData = currentConcentrationData;
+        globalDataState.steadyState = steadyState;
+        globalDataState.currentTimeStep++;
+    }
     isWorkerBusy = false;
 };
 
@@ -53,56 +53,25 @@ diffusionWorker.onerror = function(error) {
 /**
  * Update the scene for the current time step.
  */
-export const updateSimulation = () => {
+export const updateSimulation = (dataState, DiffParams) => {
     // Update the surface mesh with the current concentration data
-
-
-
     if (!dataState.steadyState) {
         dataState.lastConcentrationData = dataState.currentConcentrationData;
-        requestDiffusionCalculation(dataState.currentConcentrationData);
-         
-    } else if (dataState.init && dataState.steadyState) {
-        handleSteadyState();
+        requestDiffusionCalculation(dataState.currentConcentrationData, DiffParams, dataState);
     }
-};
-
-/**
- * Handle actions when steady state is reached.
- */
-export const handleSteadyState = () => {
-    dataState.init = false;
-    const time1 = performance.now();
-    const elapsedTime = time1 - dataState.time0;
-    dataState.steadyStateTimes.push(elapsedTime);
-    dataState.steadyStateSteps.push(dataState.currentTimeStep);
-
-    console.log(`Run ${dataState.runCount + 1}: It took ${elapsedTime} milliseconds to reach steady state.`);
-
-    dataState.runCount++;
-    resetSimulation();
-};
-
-/**
- * Reset the simulation for a new run.
- */
-export const resetSimulation = () => {
-    dataState.currentTimeStep = 0; // Reset animation state
-    initArrays(); // Reinitialize arrays with new random sources and sinks
-
-    dataState.init = true;
-    dataState.steadyState = false;
-    dataState.time0 = performance.now(); // Record start time for the new run
+    // Steady state is now checked in main.js's runSimulationStep function
+    
+    return dataState.steadyState;  // Return steady state flag to inform the caller
 };
 
 /**
  * Initialize the simulation.
+ * This is just a stub that will be called from main.js
  */
-export const initSimulation = () => {
+export const initSimulation = (dataState) => {
     console.log("Starting automatic simulation runs...");
     dataState.runCount = 0;
     dataState.steadyStateTimes = [];
     dataState.steadyStateSteps = [];
-    resetSimulation();
-    
+    // resetSimulation is called by main.js
 };

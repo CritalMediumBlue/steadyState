@@ -41,7 +41,7 @@ export const DiffParams = {
     STEPS_PER_SECOND: null, // Will be calculated
     
     // Simulation parameters
-    METHOD: "ADI", // Default method
+    METHOD: "FTCS", // Default method
     
     // Reaction parameters
     SCALE_SINKS_AND_SOURCES: 200,
