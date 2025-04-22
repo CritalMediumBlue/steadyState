@@ -8,36 +8,8 @@ import {
      updateSimulation, 
      initSimulation,
      } from './simulation/simulationManager.js';
-import { dataState, initArrays } from './state.js';
+import { dataState, resetState, handleSteadyStateReached } from './state/stateManager.js';
 import { diffParams, sceneConf } from './config.js';
-
-/**
- * Handle actions when steady state is reached.
- */
-const handleSteadyState = (dataState) => {
-    dataState.init = false;
-    const time1 = performance.now();
-    const elapsedTime = time1 - dataState.time0;
-    dataState.steadyStateTimes.push(elapsedTime);
-    dataState.steadyStateSteps.push(dataState.currentTimeStep);
-
-    console.log(`Run ${dataState.runCount + 1}: It took ${elapsedTime} milliseconds to reach steady state.`);
-
-    dataState.runCount++;
-    resetSimulation(dataState);
-};
-
-/**
- * Reset the simulation for a new run.
- */
-const resetSimulation = (dataState) => {
-    dataState.currentTimeStep = 0; // Reset animation state
-    initArrays(diffParams, sceneConf); // Reinitialize arrays with new random sources and sinks
-
-    dataState.init = true;
-    dataState.steadyState = false;
-    dataState.time0 = performance.now(); // Record start time for the new run
-};
 
 /**
  * Run a simulation step and check for steady state.
@@ -48,7 +20,7 @@ export const runSimulationStep = (dataState, diffParams) => {
     
     // Check if steady state has been reached
     if (dataState.init && dataState.steadyState) {
-        handleSteadyState(dataState);
+        handleSteadyStateReached(diffParams, sceneConf);
     }
 };
 
@@ -76,6 +48,6 @@ window.addEventListener('load', () => {
     createMesh(diffParams.WIDTH, diffParams.HEIGHT);
     initSimulation(dataState);
 
-    resetSimulation(dataState); // Explicitly call resetSimulation after initialization
+    resetState(diffParams, sceneConf); // Use resetState from stateManager
     animate();
 });

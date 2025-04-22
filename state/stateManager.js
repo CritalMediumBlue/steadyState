@@ -1,35 +1,15 @@
-export const dataState = {
-    // Concentration data
-    currentConcentrationData: null,
-    lastConcentrationData: null,
-    lastConcentrationData2: null,
-    sources: null,
-    sinks: null,
-    
-    // Simulation state
-    currentTimeStep: 0,
-    steadyStateSteps: [],
-    steadyStateTimes: [],
-    runCount: 0,
-    maxRuns: 500,
-    init: false,
-    
-    // Time calculation properties
-    timeLapse: 1, // Default time lapse factor
-    method: null,
-    
-    // Additional simulation variables
-    steadyState: false,
-    time0: 0
-};
+// filepath: /home/home/Schreibtisch/steadyState/state/stateManager.js
+import { dataState } from './state.js';
 
+/**
+ * Initialize arrays for concentration data, sources, and sinks
+ */
 export const initArrays = (diffParams, sceneConf) => {
     const gridSize = diffParams.WIDTH * diffParams.HEIGHT;
     dataState.method = diffParams.METHOD;
 
     dataState.currentConcentrationData = new Float32Array(gridSize);
     dataState.lastConcentrationData = new Float32Array(gridSize);
-    dataState.lastConcentrationData2 = new Float32Array(gridSize);
     dataState.currentConcentrationData.fill(11);
     
     // Initialize sources and sinks
@@ -41,7 +21,7 @@ export const initArrays = (diffParams, sceneConf) => {
     const sourcePositions = new Set();
     const sinkPositions = new Set();
 
-    const boundaryMargin = 1;
+    const boundaryMargin = 3;
     
     for (let i = 0; i < numberOfSinksAndSources; i++) {
         let pos, row, col;
@@ -103,3 +83,33 @@ export const initArrays = (diffParams, sceneConf) => {
         dataState.sinks[i * diffParams.WIDTH + (diffParams.WIDTH - 1)] = 0;
     }
 };
+
+/**
+ * Reset the simulation state
+ */
+export const resetState = (diffParams, sceneConf) => {
+    dataState.currentTimeStep = 0;
+    initArrays(diffParams, sceneConf);
+    dataState.init = true;
+    dataState.steadyState = false;
+    dataState.time0 = performance.now();
+};
+
+/**
+ * Handle steady state reached
+ */
+export const handleSteadyStateReached = (diffParams, sceneConf) => {
+    dataState.init = false;
+    const time1 = performance.now();
+    const elapsedTime = time1 - dataState.time0;
+    dataState.steadyStateTimes.push(elapsedTime);
+    dataState.steadyStateSteps.push(dataState.currentTimeStep);
+
+    console.log(`Run ${dataState.runCount + 1}: It took ${elapsedTime} milliseconds to reach steady state.`);
+
+    dataState.runCount++;
+    resetState(diffParams, sceneConf);
+};
+
+// Re-export dataState for convenience
+export { dataState };
