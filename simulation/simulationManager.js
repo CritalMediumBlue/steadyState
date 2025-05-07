@@ -12,23 +12,23 @@ let globalDataState = null; // Store a reference to the dataState object
  * @param {Object} diffParams - Diffusion parameters.
  * @param {Object} dataState - Current state data.
  */
-export const requestDiffusionCalculation = (concentration1, diffParams, dataState) => {
+export const requestDiffusionCalculation = (concentration1,
+    sources,
+    sinks,
+     deltaX,
+     deltaT,
+     timeLapse,
+     diffusionRate,
+     method,
+     dataState) => {
     if (isWorkerBusy) return; // Skip if the worker is busy
 
     isWorkerBusy = true;
     globalDataState = dataState; // Store reference to dataState
 
-     // Extract data sources and sinks
-    const  sources = dataState.sources
-    const  sinks  = dataState.sinks
-    
-    // Extract diffusion parameters
-    const  deltaX  = diffParams.DELTA_X;
-    const  deltaT  = diffParams.DELTA_T;
-    const  timeLapse = diffParams.TIME_LAPSE;
-    const  diffusionRate = diffParams.DIFFUSION_RATE;
-    const  method = diffParams.METHOD; 
 
+    
+   
     diffusionWorker.postMessage({
         concentration1,
         sources,
@@ -70,7 +70,25 @@ export const updateSimulation = (dataState, diffParams) => {
     // Update the surface mesh with the current concentration data
     if (!dataState.steadyState) {
         dataState.lastConcentrationData = dataState.currentConcentrationData;
-        requestDiffusionCalculation(dataState.currentConcentrationData, diffParams, dataState);
+         // Extract diffusion parameters
+         const concentration = dataState.currentConcentrationData;
+        const  deltaX  = diffParams.DELTA_X;
+        const  deltaT  = diffParams.DELTA_T;
+        const  timeLapse = diffParams.TIME_LAPSE;
+        const  diffusionRate = diffParams.DIFFUSION_RATE;
+        const  method = diffParams.METHOD; 
+        const  sources = dataState.sources
+        const  sinks  = dataState.sinks
+
+        requestDiffusionCalculation(concentration,
+            sources,
+            sinks,
+            deltaX,
+            deltaT,
+            timeLapse,
+            diffusionRate,
+            method,
+             dataState);
     }
     
     return dataState.steadyState;  // Return steady state flag to inform the caller
