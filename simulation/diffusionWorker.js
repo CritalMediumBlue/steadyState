@@ -11,7 +11,6 @@ self.onmessage = function(e) {
         deltaT,
         method, 
         timeLapse,
-        diffParams,
         
     } = e.data;
     
@@ -25,7 +24,6 @@ self.onmessage = function(e) {
         deltaT,
         method,
         timeLapse,
-        diffParams,
         
     );
 
@@ -50,15 +48,14 @@ function diffusionCore(
     deltaT, 
     method,
     timeLapse,
-    diffParams,
     
 ) {
     // Select the appropriate solver based on the method parameter
     switch (method) {
         case "FTCS":
-            return solveFTCS(concentrationData, sources, sinks, diffusionRate, deltaX, timeLapse, deltaT, diffParams);
+            return solveFTCS(concentrationData, sources, sinks, diffusionRate, deltaX, timeLapse, deltaT);
         case "ADI":
-            return solveADI(concentrationData, sources, sinks, diffusionRate, deltaX, timeLapse, diffParams);
+            return solveADI(concentrationData, sources, sinks, diffusionRate, deltaX, timeLapse);
         default:
             throw new Error(`Unknown diffusion method: ${method}. Supported methods are "FTCS" and "ADI".`);
     }

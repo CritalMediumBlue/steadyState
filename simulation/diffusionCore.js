@@ -86,16 +86,18 @@ function calculateMichaelisMentenTerm(concentration, halfSaturationConstant) {
  * @param {number} deltaX - Spatial step size
  * @param {number} timeLapse - Time lapse for the simulation in seconds
  * @param {number} deltaT - Time step size
- * @param {Object} diffParams - Diffusion parameters
  * @returns {Object} Object containing the updated concentration data and steady state status
  * @returns {Float32Array} currentConcentrationData - The updated concentration values
  * @returns {boolean} steadyState - Whether the system has reached steady state
  */
-export function solveFTCS(concentrationData, sources, sinks, diffusionRate, deltaX, timeLapse, deltaT, diffParams ) {
-    const { WIDTH, HEIGHT } = diffParams;
+export function solveFTCS(concentrationData, sources, sinks, diffusionRate, deltaX, timeLapse, deltaT ) {
+    const WIDTH = 100
+    const HEIGHT = 60
+    const scaleSAndS = 200
+    const halfSaturationConstant = 0.5;
     const totalNumberOfSteps = Math.round(timeLapse / deltaT);
-    const scaleSinksAndSources = diffParams.SCALE_SINKS_AND_SOURCES * timeLapse;
-    const halfSaturationConstant = diffParams.HALF_SATURATION_CONSTANT;
+    const scaleSinksAndSources = scaleSAndS * timeLapse;
+    
     
     // Create copies of input arrays to avoid modifying originals
     let current = new Float32Array(concentrationData);
@@ -162,20 +164,20 @@ export function solveFTCS(concentrationData, sources, sinks, diffusionRate, delt
  * @param {number} diffusionRate - Diffusion coefficient (D)
  * @param {number} deltaX - Spatial step size
  * @param {number} timeLapse - Time lapse for the simulation in seconds
- * @param {Object} diffParams - Diffusion parameters
- * @param {Object} diffParams - Scene configuration
  * @returns {Object} Object containing the updated concentration data and steady state status
  * @returns {Float32Array} currentConcentrationData - The updated concentration values
  * @returns {boolean} steadyState - Whether the system has reached steady state
  */
-export function solveADI(concentrationData, sources, sinks, diffusionRate, deltaX, timeLapse, diffParams) {
-    const { WIDTH, HEIGHT } = diffParams;
+export function solveADI(concentrationData, sources, sinks, diffusionRate, deltaX, timeLapse) {
+    const WIDTH = 100
+    const HEIGHT = 60
+    const scaleSAndS = 200
+    const halfSaturationConstant = 0.5;
     
     // ADI uses a fixed time step for stability and accuracy
     const timeStep = 1; // one second is the maximum time step
     const totalNumberOfSteps = Math.round(timeLapse / timeStep);
-    const scaleSinksAndSources = diffParams.SCALE_SINKS_AND_SOURCES;
-    const halfSaturationConstant = diffParams.HALF_SATURATION_CONSTANT;
+    const scaleSinksAndSources = scaleSAndS;
     
     // Create a copy of the input concentration data
     let currentData = new Float32Array(concentrationData);

@@ -25,7 +25,6 @@ export const requestDiffusionCalculation = (concentration1, diffParams, dataStat
         concentration1,
         sources,
         sinks,
-        diffParams, // Pass the entire diffParams object
         DIFFUSION_RATE,
         deltaX,
         deltaT,
