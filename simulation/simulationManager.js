@@ -12,7 +12,8 @@ let globalDataState = null; // Store a reference to the dataState object
  * @param {Object} diffParams - Diffusion parameters.
  * @param {Object} dataState - Current state data.
  */
-export const requestDiffusionCalculation = (concentration1,
+export const requestDiffusionCalculation = (
+    concentration1,
     sources,
     sinks,
      deltaX,
@@ -33,7 +34,6 @@ export const requestDiffusionCalculation = (concentration1,
         concentration1,
         sources,
         sinks,
-        DIFFUSION_RATE: diffusionRate, // Keep the same property name expected by the worker
         diffusionRate,
         deltaX,
         deltaT,

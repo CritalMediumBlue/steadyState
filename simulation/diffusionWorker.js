@@ -6,11 +6,11 @@ self.onmessage = function(e) {
         concentration1,
         sources, 
         sinks,
-        DIFFUSION_RATE,
+        diffusionRate,
         deltaX,
         deltaT,
         method, 
-        timeLapse,
+        timeLapse, 
         
     } = e.data;
     
@@ -19,7 +19,7 @@ self.onmessage = function(e) {
         concentration1, 
         sources, 
         sinks, 
-        DIFFUSION_RATE,
+        diffusionRate,
         deltaX,
         deltaT,
         method,
