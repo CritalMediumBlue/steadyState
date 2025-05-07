@@ -6,7 +6,7 @@ const diffusionWorker = new Worker('./simulation/diffusionWorker.js', { type: 'm
 let isWorkerBusy = false; // Flag to track if the worker is busy
 let globalDataState = null; // Store a reference to the dataState object
 
-/**
+/** 
  * Request diffusion calculation from the Web Worker.
  * @param {Array} concentration1 - Current concentration data.
  * @param {Object} diffParams - Diffusion parameters.
