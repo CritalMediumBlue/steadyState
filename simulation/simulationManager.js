@@ -18,18 +18,27 @@ export const requestDiffusionCalculation = (concentration1, diffParams, dataStat
     isWorkerBusy = true;
     globalDataState = dataState; // Store reference to dataState
 
-    const { sources, sinks } = dataState;
-    const { DELTA_X: deltaX, DELTA_T: deltaT, DIFFUSION_RATE } = diffParams;
+     // Extract data sources and sinks
+    const  sources = dataState.sources
+    const  sinks  = dataState.sinks
+    
+    // Extract diffusion parameters
+    const  deltaX  = diffParams.DELTA_X;
+    const  deltaT  = diffParams.DELTA_T;
+    const  timeLapse = diffParams.TIME_LAPSE;
+    const  diffusionRate = diffParams.DIFFUSION_RATE;
+    const  method = diffParams.METHOD; 
 
     diffusionWorker.postMessage({
         concentration1,
         sources,
         sinks,
-        DIFFUSION_RATE,
+        DIFFUSION_RATE: diffusionRate, // Keep the same property name expected by the worker
+        diffusionRate,
         deltaX,
         deltaT,
-        method: diffParams.METHOD,
-        timeLapse: diffParams.TIME_LAPSE,
+        method: method,
+        timeLapse: timeLapse,
     });
 };
 
