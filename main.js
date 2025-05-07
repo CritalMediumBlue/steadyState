@@ -16,7 +16,7 @@ import { diffParams, sceneConf } from './config.js';
  */
 export const runSimulationStep = (dataState, diffParams) => {
     // Run the simulation step
-    updateSimulation(dataState, diffParams, sceneConf);
+    updateSimulation(dataState, diffParams);
     
     // Check if steady state has been reached
     if (dataState.init && dataState.steadyState) {

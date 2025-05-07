@@ -14,7 +14,6 @@
  * - R is sink/reaction term
  */
 
-// Removed direct import of diffParams and sceneConf
 
 // ============================================================================
 // HELPER FUNCTIONS
@@ -88,12 +87,11 @@ function calculateMichaelisMentenTerm(concentration, halfSaturationConstant) {
  * @param {number} timeLapse - Time lapse for the simulation in seconds
  * @param {number} deltaT - Time step size
  * @param {Object} diffParams - Diffusion parameters
- * @param {Object} sceneConf - Scene configuration
  * @returns {Object} Object containing the updated concentration data and steady state status
  * @returns {Float32Array} currentConcentrationData - The updated concentration values
  * @returns {boolean} steadyState - Whether the system has reached steady state
  */
-export function solveFTCS(concentrationData, sources, sinks, diffusionRate, deltaX, timeLapse, deltaT, diffParams, sceneConf) {
+export function solveFTCS(concentrationData, sources, sinks, diffusionRate, deltaX, timeLapse, deltaT, diffParams ) {
     const { WIDTH, HEIGHT } = diffParams;
     const totalNumberOfSteps = Math.round(timeLapse / deltaT);
     const scaleSinksAndSources = diffParams.SCALE_SINKS_AND_SOURCES * timeLapse;
@@ -170,7 +168,7 @@ export function solveFTCS(concentrationData, sources, sinks, diffusionRate, delt
  * @returns {Float32Array} currentConcentrationData - The updated concentration values
  * @returns {boolean} steadyState - Whether the system has reached steady state
  */
-export function solveADI(concentrationData, sources, sinks, diffusionRate, deltaX, timeLapse, diffParams, sceneConf) {
+export function solveADI(concentrationData, sources, sinks, diffusionRate, deltaX, timeLapse, diffParams) {
     const { WIDTH, HEIGHT } = diffParams;
     
     // ADI uses a fixed time step for stability and accuracy
