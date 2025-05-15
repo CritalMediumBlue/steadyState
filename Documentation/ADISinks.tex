@@ -1123,35 +1123,35 @@ $\boxed{\small
                          \foreach \y in {0,...,4} {
                              \fill (\x,\y) circle (0.0753); 
                              \onslide<2->{
-                             \ifnum  \y=-1 \ifnum  \x>0 \ifnum  \x<5
+                             \ifnum  \y=-1 \ifnum  \x>-1 \ifnum  \x<6
                                  \fill[blue, fill opacity=0.5] (\x,\y) circle (0.2);
                             \fi \fi \fi
-                            \ifnum  \y=0  \ifnum  \x>0 \ifnum  \x<5
+                            \ifnum  \y=0  \ifnum  \x>-1 \ifnum  \x<6
                                 \fill[blue, fill opacity=0.5] (\x,\y) circle (0.2);
                                 \fi \fi \fi
-                            \ifnum  \y=1 \ifnum  \x>0 \ifnum  \x<5
+                            \ifnum  \y=1 \ifnum  \x>-1 \ifnum  \x<6
                                 \fill[blue, fill opacity=0.5] (\x,\y) circle (0.2);
                                 \fi \fi \fi 
                              }
                              \onslide<3->{
-                                \ifnum  \y=0 \ifnum  \x>0 \ifnum  \x<5
+                                \ifnum  \y=0 \ifnum  \x>-1 \ifnum  \x<6
                                     \fill[blue, fill opacity=0.5] (\x,\y) circle (0.2);
                                 \fi \fi \fi
-                                \ifnum  \y=1  \ifnum  \x>0 \ifnum  \x<5
+                                \ifnum  \y=1  \ifnum  \x>-1 \ifnum  \x<6
                                     \fill[blue, fill opacity=0.5] (\x,\y) circle (0.2);
                                     \fi \fi \fi
-                                \ifnum  \y=2 \ifnum  \x>0 \ifnum  \x<5
+                                \ifnum  \y=2 \ifnum  \x>-1 \ifnum  \x<6
                                     \fill[blue, fill opacity=0.5] (\x,\y) circle (0.2);
                                     \fi \fi \fi 
                                  }
                            \onslide<4->{
-                                \ifnum  \y=1 \ifnum  \x>0 \ifnum  \x<5
+                                \ifnum  \y=1 \ifnum  \x>-1 \ifnum  \x<6
                                     \fill[blue, fill opacity=0.5] (\x,\y) circle (0.2);
                                 \fi \fi \fi
-                                \ifnum  \y=2  \ifnum  \x>0 \ifnum  \x<5
+                                \ifnum  \y=2  \ifnum  \x>-1 \ifnum  \x<6
                                     \fill[blue, fill opacity=0.5] (\x,\y) circle (0.2);
                                     \fi \fi \fi
-                                \ifnum  \y=3 \ifnum  \x>0 \ifnum  \x<5
+                                \ifnum  \y=3 \ifnum  \x>-1 \ifnum  \x<6
                                     \fill[blue, fill opacity=0.5] (\x,\y) circle (0.2);
                                     \fi \fi \fi 
                                  
@@ -1320,11 +1320,15 @@ $\boxed{\small
                 \vspace{-3.5cm}
         \end{column}
     \end{columns}
-   
+    
     \vspace{0.1cm}
     \small
    
 \end{frame}
 
+\begin{frame}
+Each tridiagonal system can be solved using Thomas algorithm.
+
+\end{frame}
 
 \end{document}
